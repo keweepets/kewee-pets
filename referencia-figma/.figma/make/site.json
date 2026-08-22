@@ -1,0 +1,10 @@
+{
+  "description": "Execute commands or scripts quickly and efficiently with a simple interface designed for developers and IT professionals to streamline workflows.",
+  "robots": {
+    "index": false
+  },
+  "accessibility": {
+    "addBypassLinks": false,
+    "ignoreReducedMotion": false
+  }
+}
