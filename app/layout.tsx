@@ -2,6 +2,11 @@ import type { Metadata } from "next";
 import { Nunito, Outfit } from "next/font/google";
 import "./globals.css";
 
+import BotonFlotanteWhatsApp from "@/components/whatsapp/boton-flotante";
+import Footer from "@/components/layout/footer";
+import Header from "@/components/layout/header";
+import { ProveedorCarrito } from "@/components/carrito/proveedor-carrito";
+
 const nunito = Nunito({
   variable: "--font-nunito",
   subsets: ["latin"],
@@ -48,7 +53,14 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       lang="es"
       className={`${nunito.variable} ${outfit.variable} h-full antialiased`}
     >
-      <body className="flex min-h-full flex-col">{children}</body>
+      <body className="flex min-h-full flex-col">
+        <ProveedorCarrito>
+          <Header />
+          <main className="flex-1 flex flex-col">{children}</main>
+          <Footer />
+          <BotonFlotanteWhatsApp />
+        </ProveedorCarrito>
+      </body>
     </html>
   );
 }
