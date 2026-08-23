@@ -1,0 +1,15 @@
+# ============================================================
+# KEWEE MASCOTAS · Plantilla de carga — PRODUCTOS
+# Formato: UTF-8 · separador coma · una fila por producto.
+# Reglas: precios enteros COP sin puntos ni $. Valores sí/no en minúscula.
+# ------------------------------------------------------------
+# nombre*            : Nombre visible del producto.
+# slug               : Opcional. Se genera desde nombre (minúsculas, sin tildes, guiones).
+# categoria_slug*    : perros | gatos | accesorios  (debe existir en Supabase).
+# marca_nombre*      : Debe existir en la hoja marcas.csv.
+# descripcion_corta  : Máx. 140 caracteres. Se muestra bajo el título.
+# descripcion        : Texto largo opcional para la ficha del producto.
+# es_destacado       : sí | no   (aparece en "Destacados" del Home)
+# es_mas_vendido     : sí | no   (aparece en "Más vendidos" del Home)
+# ------------------------------------------------------------
+nombre,slug,categoria_slug,marca_nombre,descripcion_corta,descripcion,es_destacado,es_mas_vendido

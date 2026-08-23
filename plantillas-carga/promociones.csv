@@ -1,0 +1,21 @@
+# ============================================================
+# KEWEE MASCOTAS · Plantilla de carga — PROMOCIONES (OPCIONAL)
+# Formato: UTF-8 · separador coma · una fila por promoción.
+# HOJA OPCIONAL: si no vas a crear promociones aún, deja este archivo vacío.
+# REGLAS: NO se acumulan; sobre cada variante aplica la de mayor descuento;
+# el precio base nunca se modifica; requieren fechas obligatorias.
+# ------------------------------------------------------------
+# nombre*        : Nombre interno de la promoción.
+# tipo*          : porcentaje | monto
+# valor*         : porcentaje => número entre 1 y 100 · monto => COP enteros > 0
+# alcance*       : global | categoria | marca | producto | variante
+# objeto_slug    : Obligatorio según alcance:
+#                    global    -> dejar vacío
+#                    categoria -> slug de categoría   (ej.: perros)
+#                    marca     -> slug de marca
+#                    producto  -> slug de producto
+#                    variante  -> slug del producto dueño de la variante
+# fecha_inicio*  : ISO 8601  ej.: 2026-09-01T00:00:00Z
+# fecha_fin*     : ISO 8601. Debe ser POSTERIOR a fecha_inicio. ej.: 2026-09-30T23:59:59Z
+# ------------------------------------------------------------
+nombre,tipo,valor,alcance,objeto_slug,fecha_inicio,fecha_fin

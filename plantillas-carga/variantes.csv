@@ -1,0 +1,15 @@
+# ============================================================
+# KEWEE MASCOTAS · Plantilla de carga — VARIANTES
+# Formato: UTF-8 · separador coma · una fila por variante.
+# REGLA: todo producto necesita al menos una variante.
+# Si el producto es único, usa exactamente: Unico
+# ------------------------------------------------------------
+# producto_slug*       : Debe coincidir con el slug del producto en productos.csv.
+# nombre_variante*     : Ej.: 15 lb, S, Unico. Único por producto (no repetir).
+# precio_cop*          : Entero >= 0. Sin puntos, sin $, sin decimales. Ej.: 89900
+# precio_anterior_cop  : Opcional. SOLO si hay rebaja fija. Debe ser MAYOR que precio_cop.
+# sku                  : Opcional. Código único de inventario.
+# stock*               : Entero >= 0.
+# orden                : Opcional. Número para ordenar variantes (menor aparece primero).
+# ------------------------------------------------------------
+producto_slug,nombre_variante,precio_cop,precio_anterior_cop,sku,stock,orden

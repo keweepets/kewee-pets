@@ -1,0 +1,11 @@
+# ============================================================
+# KEWEE MASCOTAS · Plantilla de carga — MARCAS
+# Formato: UTF-8 · separador coma · una fila por marca debajo del encabezado.
+# Las líneas que empiezan con # son guía y el cargador las ignora.
+# Campos marcados * son obligatorios.
+# ------------------------------------------------------------
+# nombre*     : Nombre visible de la marca. Único. Ej.: Royal Canin
+# slug        : Opcional. Se genera automáticamente desde nombre si se deja vacío.
+# logo_url    : Opcional. Ruta /images/marcas/{slug}.webp o URL absoluta.
+# ------------------------------------------------------------
+nombre,slug,logo_url

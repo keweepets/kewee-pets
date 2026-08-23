@@ -1,4 +1,3 @@
-import BannerPromocion from "@/components/home/banner-promocion";
 import CarruselFavoritos from "@/components/home/carrusel-favoritos";
 import Categorias from "@/components/home/categorias";
 import CtaFinal from "@/components/home/cta-final";
@@ -19,7 +18,8 @@ export default function Home() {
       <Categorias />
       <SeccionPerrosGatos />
       <CarruselFavoritos productos={masVendidos} />
-      <BannerPromocion />
+      {/* Banner "20% OFF" neutralizado: es copia estática sin promoción real en
+          Supabase. Se reintegrará dinámicamente cuando existan promociones reales. */}
       <SeccionNosotros />
       <GridDestacados productos={destacados} />
       <Marcas marcas={marcas} />

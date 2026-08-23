@@ -1,0 +1,17 @@
+# ============================================================
+# KEWEE MASCOTAS · Plantilla de carga — IMÁGENES
+# Formato: UTF-8 · separador coma · una fila por imagen.
+# UBICACIÓN ACORDADA: las fotos web viven en el proyecto en
+#   public/images/productos/{slug-producto}/1.webp  2.webp  ...
+#   y para variante específica: variante-{nombre}.webp
+# ------------------------------------------------------------
+# producto_slug*    : Igual al slug del producto en productos.csv.
+# orden*            : Número entero (1 = imagen principal).
+# variante_nombre   : Vacío = imagen general del producto.
+#                     Si la foto es de una variante específica, su nombre exacto.
+# url               : DEJAR VACÍO normalmente -> se genera automáticamente como
+#                     /images/productos/{producto_slug}/{orden}.webp
+#                     Llenar solo si usas una ruta o URL distinta.
+# alt               : Opcional. Descripción accesible; se genera desde nombre si vacío.
+# ------------------------------------------------------------
+producto_slug,orden,variante_nombre,url,alt
