@@ -1,5 +1,6 @@
 /**
- * Tipos que reflejan EXACTAMENTE las filas del esquema Supabase (FASE 3):
+ * Tipos que reflejan EXACTAMENTE las filas del esquema Supabase
+ * (FASE 3 + FASE 6B migración 0004):
  * marcas, categorias, productos, variantes_producto, imagenes_producto,
  * promociones. Nombres snake_case idénticos a las columnas reales.
  *
@@ -36,9 +37,19 @@ export interface ProductoRow {
   activo: boolean;
   es_destacado: boolean;
   es_mas_vendido: boolean;
+  es_prueba: boolean;
   created_at: string;
   updated_at: string;
 }
+
+export type TipoVariante =
+  | "unico"
+  | "peso"
+  | "talla"
+  | "tamano"
+  | "cantidad"
+  | "volumen"
+  | "presentacion";
 
 export interface VarianteRow {
   id: string;
@@ -50,6 +61,10 @@ export interface VarianteRow {
   stock: number;
   orden: number;
   activo: boolean;
+  tipo_variante: TipoVariante;
+  valor: string | null;
+  unidad: string | null;
+  descuento_porcentaje: number | null;
   created_at: string;
 }
 

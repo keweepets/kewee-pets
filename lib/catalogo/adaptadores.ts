@@ -91,14 +91,19 @@ export function mapearProducto(
       resolutorCategorias
     );
 
-    const hayPromo = resuelto.promocionAplicada !== null;
-    const precioOriginal =
-      v.precio_anterior ?? (hayPromo ? v.precio : undefined);
+    const precioDescuento =
+      v.descuento_porcentaje != null && v.descuento_porcentaje > 0
+        ? Math.round(v.precio * (1 - v.descuento_porcentaje / 100))
+        : v.precio;
+
+    const precioEfectivo = Math.min(resuelto.precioEfectivo, precioDescuento);
+    const hayDescuento = precioEfectivo < v.precio;
+    const precioOriginal = hayDescuento ? v.precio : (v.precio_anterior ?? undefined);
 
     return {
       id: v.id,
       nombre: v.nombre,
-      precio: resuelto.precioEfectivo,
+      precio: precioEfectivo,
       ...(precioOriginal !== undefined ? { precioOriginal } : {}),
       ...(v.sku ? { sku: v.sku } : {}),
       stock: v.stock,

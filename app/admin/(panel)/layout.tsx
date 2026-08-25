@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 
 import Boton from "@/components/ui/boton";
 import { requerirAdmin } from "@/lib/auth/sesion";
@@ -12,7 +13,7 @@ export const metadata: Metadata = {
   robots: { index: false, follow: false },
 };
 
-const SECCIONES_FUTURAS = ["Productos", "Marcas", "Promociones"];
+const SECCIONES_FUTURAS = ["Promociones"];
 
 /**
  * Shell del panel. requerirAdmin() protege las rutas del grupo (panel):
@@ -54,6 +55,18 @@ export default async function AdminLayout({
           <span className="rounded-full bg-green-500 px-4 py-1.5 text-sm font-bold text-white">
             Resumen
           </span>
+          <Link
+            href="/admin/productos"
+            className="rounded-full border border-green-200 bg-green-50 px-4 py-1.5 text-sm font-bold text-green-700 transition-colors hover:bg-green-100"
+          >
+            Productos
+          </Link>
+          <Link
+            href="/admin/marcas"
+            className="rounded-full border border-green-200 bg-green-50 px-4 py-1.5 text-sm font-bold text-green-700 transition-colors hover:bg-green-100"
+          >
+            Marcas
+          </Link>
           {SECCIONES_FUTURAS.map((seccion) => (
             <span
               key={seccion}

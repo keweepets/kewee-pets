@@ -5,7 +5,7 @@
  * para que reemplazar el mock data por datos reales sea un cambio mínimo.
  */
 
-export type CategoriaSlug = "perros" | "gatos" | "accesorios" | "ofertas";
+export type CategoriaSlug = "perros" | "gatos" | "accesorios" | "medicinas" | "ofertas";
 
 export type EtiquetaProducto = "mas-vendido" | "oferta" | "nuevo";
 

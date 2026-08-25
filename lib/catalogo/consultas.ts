@@ -176,7 +176,8 @@ export async function listarProductos(
   let consulta = supabase
     .from("productos")
     .select(SELECT_PRODUCTO, { count: "exact" })
-    .eq("activo", true);
+    .eq("activo", true)
+    .eq("es_prueba", false);
 
   if (filtros.categoriaSlug) {
     const ids = await idsCategoriaConHijas(filtros.categoriaSlug);
@@ -240,6 +241,7 @@ export async function obtenerProductoPorSlug(
     .from("productos")
     .select(SELECT_PRODUCTO)
     .eq("activo", true)
+    .eq("es_prueba", false)
     .eq("slug", slug)
     .maybeSingle();
   if (error) await lanzarSiError("obtenerProductoPorSlug", error);
