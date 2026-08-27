@@ -105,3 +105,63 @@ export interface ProductoRowCompleto extends ProductoRow {
   variantes_producto: VarianteRow[];
   imagenes_producto: ImagenProductoRow[];
 }
+
+// ---------------------------------------------------------------------------
+// PEDIDOS (FASE 6 · migración 0007) — clientes, pedidos, detalles_pedido
+// ---------------------------------------------------------------------------
+
+export interface ClienteRow {
+  id: string;
+  nombre: string;
+  telefono: string;
+  email: string | null;
+  direccion: string | null;
+  barrio: string | null;
+  ciudad: string;
+  departamento: string | null;
+  notas: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export type EstadoPedido =
+  | "recibido"
+  | "en_procesamiento"
+  | "despachado"
+  | "en_entrega"
+  | "entregado"
+  | "cancelado"
+  | "rechazado";
+
+export type MetodoPago = "contraentrega" | "mercadopago";
+
+export interface PedidoRow {
+  id: string;
+  numero_pedido: string;
+  cliente_id: string;
+  estado: EstadoPedido;
+  metodo_pago: MetodoPago;
+  subtotal: number;
+  costo_envio: number;
+  descuento_total: number;
+  total: number;
+  direccion: string;
+  barrio: string | null;
+  ciudad: string;
+  departamento: string | null;
+  notas: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface DetallePedidoRow {
+  id: string;
+  pedido_id: string;
+  producto_id: string | null;
+  variante_id: string | null;
+  nombre_producto: string;
+  nombre_variante: string;
+  cantidad: number;
+  precio_unitario: number;
+  subtotal_linea: number;
+}

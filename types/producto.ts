@@ -46,6 +46,9 @@ export interface ItemCarrito {
   nombreVariante: string;
   precio: number;
   cantidad: number;
+  /** Stock disponible de la variante, usado por el carrito para acotar la
+   *  cantidad (mínimo 1, máximo stock). */
+  stock?: number;
   imagen: string;
   slug: string;
 }

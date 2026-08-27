@@ -58,6 +58,7 @@ export default function DetalleProducto({ producto }: { producto: Producto }) {
       nombreVariante: variante.nombre,
       precio: variante.precio,
       cantidad: 1,
+      stock: variante.stock,
       imagen: producto.imagenes[0] ?? "",
       slug: producto.slug,
     });

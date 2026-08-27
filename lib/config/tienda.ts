@@ -27,6 +27,7 @@ export const RUTAS = {
   producto: (slug: string) => `/producto/${slug}`,
   catalogoCategoria: (categoria: string) => `/catalogo?categoria=${categoria}`,
   carrito: "/carrito",
+  checkout: "/checkout",
   nosotros: "/nosotros",
   contacto: "/contacto",
   admin: "/admin",
