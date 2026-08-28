@@ -121,6 +121,10 @@ export default function CheckoutPage() {
         metodoPago,
         costoEnvio,
       });
+      if (!resultado.ok) {
+        setError(resultado.error);
+        return;
+      }
       setPedidoConfirmado(resultado.pedido);
       vaciar();
     } catch (e) {

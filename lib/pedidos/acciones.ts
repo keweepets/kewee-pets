@@ -24,6 +24,8 @@ import {
 } from "@/lib/catalogo/promociones";
 import { construirResolutorCategorias } from "@/lib/catalogo/adaptadores";
 import type { PedidoConRelaciones } from "@/lib/pedidos/consultas";
+import { construirHtmlConfirmacionPedido } from "@/lib/resend/plantilla-confirmacion";
+import { enviarCorreo } from "@/lib/resend/servicio";
 
 /** Datos de identificación/contacto del comprador (checkout como invitado). */
 export interface DatosClientePedido {
@@ -56,9 +58,17 @@ export interface CrearPedidoEntrada {
   costoEnvio?: number;
 }
 
-export interface ResultadoCrearPedido {
-  pedido: PedidoConRelaciones;
-}
+/**
+ * Resultado de crearPedido(). Por diseño seguimos la convención del resto de
+ * las Server Actions del proyecto (ver las acciones del panel admin): los
+ * errores esperables se DEVUELVEN como dato ({ ok:false, error }) y NO se lanzan.
+ * Lanzar un Error desde una Server Action hace que, en producción, React lo
+ * exponga al cliente como "Minified React error #441" (mensaje omitido por
+ * seguridad), impidiendo mostrar el detalle real al usuario.
+ */
+export type ResultadoCrearPedido =
+  | { ok: true; pedido: PedidoConRelaciones }
+  | { ok: false; error: string };
 
 /** Ítem recalculado en servidor a partir de las filas reales de catálogo. */
 interface ItemRecalculado {
@@ -241,8 +251,7 @@ async function recalcularItems(
 async function revertirPersistencia(
   idCliente: string | null,
   idPedido: string | null
-): Promise<void> {
-  const supabase = obtenerClienteServicioSupabase();
+): Promise<void> {  const supabase = obtenerClienteServicioSupabase();
   try {
     if (idPedido) {
       await supabase.from("detalles_pedido").delete().eq("pedido_id", idPedido);
@@ -259,6 +268,24 @@ async function revertirPersistencia(
 export async function crearPedido(
   entrada: CrearPedidoEntrada
 ): Promise<ResultadoCrearPedido> {
+  try {
+    const pedido = await ejecutarCrearPedido(entrada);
+    return { ok: true, pedido };
+  } catch (e) {
+    const mensaje =
+      e instanceof Error ? e.message : "No se pudo crear el pedido. Inténtalo de nuevo.";
+    return { ok: false, error: mensaje };
+  }
+}
+
+/**
+ * Núcleo de creación de pedido: persiste y devuelve el pedido completo.
+ * Lanza Error en cualquier fallo (validación, stock, BD, etc.); el export
+ * público crearPedido() convierte esos errores en un resultado { ok:false }.
+ */
+async function ejecutarCrearPedido(
+  entrada: CrearPedidoEntrada
+): Promise<PedidoConRelaciones> {
   validarEntrada(entrada);
   const supabase = obtenerClienteServicioSupabase();
 
@@ -352,11 +379,43 @@ export async function crearPedido(
   if (!data) lanzarError("El pedido se creó pero no pudo releerse.");
 
   const { clientes, detalles_pedido, ...pedidoRow } = data;
-  return {
-    pedido: {
-      pedido: pedidoRow as unknown as PedidoRow,
-      cliente: clientes as ClienteRow,
-      detalles: detalles_pedido,
-    },
+  const pedidoCompleto: PedidoConRelaciones = {
+    pedido: pedidoRow as unknown as PedidoRow,
+    cliente: clientes as ClienteRow,
+    detalles: detalles_pedido,
   };
+
+  await enviarConfirmacionPorCorreo(pedidoCompleto);
+
+  return pedidoCompleto;
+}
+
+/**
+ * Envía el correo de confirmación de pedido si el cliente tiene email.
+ * Best-effort: si Resend falla (o falta config) el pedido ya quedó creado y
+ * NUNCA se propaga el error; solo se registra en el log del servidor.
+ */
+async function enviarConfirmacionPorCorreo(
+  pedidoCompleto: PedidoConRelaciones
+): Promise<void> {
+  const email = pedidoCompleto.cliente.email?.trim();
+  if (!email) return;
+
+  try {
+    const resultado = await enviarCorreo({
+      to: email,
+      subject: `Pedido ${pedidoCompleto.pedido.numero_pedido} confirmado — Kewee Mascotas`,
+      html: construirHtmlConfirmacionPedido(pedidoCompleto),
+    });
+    if (!resultado.ok) {
+      console.error(
+        `[pedidos] No se pudo enviar el correo de confirmación (pedido ${pedidoCompleto.pedido.numero_pedido}): ${resultado.error}`
+      );
+    }
+  } catch (e) {
+    console.error(
+      `[pedidos] Error al enviar el correo de confirmación (pedido ${pedidoCompleto.pedido.numero_pedido}):`,
+      e
+    );
+  }
 }

@@ -126,9 +126,7 @@ export interface ClienteRow {
 
 export type EstadoPedido =
   | "recibido"
-  | "en_procesamiento"
-  | "despachado"
-  | "en_entrega"
+  | "en_proceso"
   | "entregado"
   | "cancelado"
   | "rechazado";

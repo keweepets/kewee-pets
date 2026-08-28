@@ -57,5 +57,5 @@ Ver `.env.example`. `.env.local` nunca se sube al repositorio.
 - Textos visibles de la interfaz: **español**.
 - Código (variables, funciones, componentes): inglés cuando sea práctica estándar; nombres de negocio (pedidos, variantes, etc.) pueden usar español.
 - Montos siempre en **COP sin decimales**, formateados con `formatPriceCOP`.
-- Estados de pedido: `pendiente | confirmado | preparando | enviado | entregado | cancelado`.
+- Estados de pedido: `recibido | en_proceso | entregado | cancelado | rechazado`.
 - Un pedido solo se marca como pagado tras confirmación del webhook de Mercado Pago.

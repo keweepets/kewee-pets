@@ -14,7 +14,9 @@
 - `crearPedido()`: validación servidor, recálculo de precios/stock/totales (fuente de verdad), rollback best-effort.
 - Pantalla de pedido confirmado con `numero_pedido`.
 - **WhatsApp funcionando**: mensaje de pedido confirmado con datos reales (`PedidoConRelaciones`) y enlace `wa.me`.
-- **Resend (correo): pendiente** de implementar.
+- **Resend: integración completa y prueba técnica exitosa.** Pendiente verificar un dominio en Resend para permitir envíos a correos de clientes reales. Actualmente `onboarding@resend.dev` solo permite enviar al correo propietario de la cuenta en modo testing.
+- **Estados de pedido simplificados** a 5 definitivos: `recibido | en_proceso | entregado | cancelado | rechazado` (se eliminaron `en_procesamiento`, `despachado` y `en_entrega`). Tipo `EstadoPedido` actualizado y migración `0008_estados_pedido.sql` creada (aplicada).
+- **Administración de pedidos (`/admin/pedidos`)**: listado con contadores por estado, filtros (estado, búsqueda por N°/cliente/teléfono, rango de fechas) y detalle con cambio de estado. Consultas `obtenerPedidosAdmin` / `obtenerConteosPorEstado`, Server Action `actualizarEstadoPedido` (protegida con `requerirAdmin`).
 - Home migrado a productos reales de Supabase (UUID) para compatibilidad con pedidos.
 
 ## FASE 7 — Pendiente

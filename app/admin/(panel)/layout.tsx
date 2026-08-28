@@ -56,6 +56,12 @@ export default async function AdminLayout({
             Resumen
           </span>
           <Link
+            href="/admin/pedidos"
+            className="rounded-full border border-green-200 bg-green-50 px-4 py-1.5 text-sm font-bold text-green-700 transition-colors hover:bg-green-100"
+          >
+            Pedidos
+          </Link>
+          <Link
             href="/admin/productos"
             className="rounded-full border border-green-200 bg-green-50 px-4 py-1.5 text-sm font-bold text-green-700 transition-colors hover:bg-green-100"
           >
