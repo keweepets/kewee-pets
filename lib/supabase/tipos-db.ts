@@ -107,7 +107,9 @@ export interface ProductoRowCompleto extends ProductoRow {
 }
 
 // ---------------------------------------------------------------------------
-// PEDIDOS (FASE 6 · migración 0007) — clientes, pedidos, detalles_pedido
+// PEDIDOS (FASE 6 · migraciones 0007/0008/0009)
+//   — clientes, pedidos, detalles_pedido
+//   — estado de pago Mercado Pago (0009)
 // ---------------------------------------------------------------------------
 
 export interface ClienteRow {
@@ -133,12 +135,18 @@ export type EstadoPedido =
 
 export type MetodoPago = "contraentrega" | "mercadopago";
 
+/** Estado del pago (FASE 7 · migración 0009). Independiente del estado del pedido. */
+export type EstadoPago = "pendiente" | "pagado" | "rechazado";
+
 export interface PedidoRow {
   id: string;
   numero_pedido: string;
   cliente_id: string;
   estado: EstadoPedido;
+  estado_pago: EstadoPago;
   metodo_pago: MetodoPago;
+  payment_id: string | null;
+  preference_id: string | null;
   subtotal: number;
   costo_envio: number;
   descuento_total: number;

@@ -320,9 +320,18 @@ async function ejecutarCrearPedido(
     idCliente = (cliente as ClienteRow).id;
 
     // 2) Pedido. numero_pedido lo genera el trigger; estado inicial 'recibido'.
+    //    estado_pago/payment_id/preference_id se omiten: la BD los asigna
+    //    (default 'pendiente' / NULL) al no participar aún del pago.
     const pedidoData: Omit<
       PedidoRow,
-      "id" | "numero_pedido" | "estado" | "created_at" | "updated_at"
+      | "id"
+      | "numero_pedido"
+      | "estado"
+      | "estado_pago"
+      | "payment_id"
+      | "preference_id"
+      | "created_at"
+      | "updated_at"
     > = {
       cliente_id: idCliente,
       metodo_pago: entrada.metodoPago,
