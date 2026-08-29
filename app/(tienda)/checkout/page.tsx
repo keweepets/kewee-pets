@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useState } from "react";
 import { useCarrito } from "@/components/carrito/proveedor-carrito";
 import { crearPedido } from "@/lib/pedidos/acciones";
+import { iniciarPagoMercadoPago } from "@/lib/mercadopago/acciones";
 import { construirEnlaceWhatsApp } from "@/lib/whatsapp/construir-mensaje-pedido";
 import { RUTAS } from "@/lib/config/tienda";
 import { formatPriceCOP } from "@/utils/formato";
@@ -74,6 +75,7 @@ export default function CheckoutPage() {
   const [enviando, setEnviando] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [pedidoConfirmado, setPedidoConfirmado] = useState<PedidoConRelaciones | null>(null);
+  const [redirigiendoMercadoPago, setRedirigiendoMercadoPago] = useState(false);
 
   const costoEnvio = total >= ENVIO_GRATIS_DESDE ? 0 : COSTO_ENVIO;
   const totalFinal = total + costoEnvio;
@@ -125,8 +127,24 @@ export default function CheckoutPage() {
         setError(resultado.error);
         return;
       }
-      setPedidoConfirmado(resultado.pedido);
-      vaciar();
+
+      // Contraentrega: flujo actual sin cambios (pantalla de confirmación + WhatsApp).
+      if (metodoPago === "contraentrega") {
+        setPedidoConfirmado(resultado.pedido);
+        vaciar();
+        return;
+      }
+
+      // Mercado Pago: pedido creado (estado 'recibido', estado_pago 'pendiente').
+      // Ahora se crea la preferencia, se guarda preference_id y se redirige a init_point.
+      setRedirigiendoMercadoPago(true);
+      const pago = await iniciarPagoMercadoPago(resultado.pedido.pedido.id);
+      if (!pago.ok) {
+        setError(pago.error);
+        setRedirigiendoMercadoPago(false);
+        return;
+      }
+      window.location.href = pago.initPoint;
     } catch (e) {
       setError(e instanceof Error ? e.message : "No se pudo crear el pedido. Inténtalo de nuevo.");
     } finally {
@@ -188,6 +206,40 @@ export default function CheckoutPage() {
               Seguir comprando
             </Link>
           </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (redirigiendoMercadoPago) {
+    return (
+      <div className="px-4 sm:px-6 lg:px-8 py-12 max-w-3xl mx-auto w-full">
+        <div className="bg-white border border-gray-100 rounded-3xl p-10 shadow-sm text-center">
+          <div className="mx-auto h-16 w-16 rounded-full bg-blue-100 flex items-center justify-center mb-4 animate-pulse">
+            <svg
+              className="h-8 w-8 text-blue-600"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+              strokeWidth={2}
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M13 10V3L4 14h7v7l9-11h-7z"
+              />
+            </svg>
+          </div>
+          <h1 className="text-2xl font-black font-display text-dark">
+            Redirigiendo a Mercado Pago
+          </h1>
+          <p className="mt-2 text-muted">
+            Tu pedido está creado. Serás enviado a Mercado Pago para completar
+            el pago de forma segura.
+          </p>
+          <p className="mt-4 text-sm text-gray-400">
+            No cierres esta ventana durante la redirección.
+          </p>
         </div>
       </div>
     );

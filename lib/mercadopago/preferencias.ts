@@ -54,8 +54,11 @@ export interface CuerpoPreferencia {
     pending: string;
     failure: string;
   };
-  auto_return: string;
+  auto_return?: string;
   notification_url: string;
+  payment_methods: {
+    installments: number;
+  };
 }
 
 /** Base URL absoluta del sitio; falla claro si no está configurada. */
@@ -68,6 +71,17 @@ function obtenerUrlBase(): string {
     );
   }
   return base;
+}
+
+/**
+ * Determina si la URL base del sitio apunta a un host local (localhost,
+ * 127.0.0.1, ::1, 0.0.0.0) en lugar de un dominio públicamente alcanzable.
+ * Mercado Pago rechaza las back_urls de auto-return para hosts locales
+ * (error: "auto_return invalid. back_url.success must be defined"), así que en
+ * esos casos NO se envía auto_return para que Checkout Pro acepte la preferencia.
+ */
+function esHostLocal(baseUrl: string): boolean {
+  return /localhost/i.test(baseUrl) || /^https?:\/\/(127\.0\.0\.1|0\.0\.0\.0|::1)(:\d+)?(?:\/|$)/i.test(baseUrl);
 }
 
 /**
@@ -101,17 +115,24 @@ export function construirCuerpoPreferencia(
 
   const base = obtenerUrlBase();
 
+  // back_urls siempre son URLs absolutas derivadas de NEXT_PUBLIC_SITE_URL.
+  const backUrls = {
+    success: `${base}${RUTA_RETORNO}?resultado=exito`,
+    pending: `${base}${RUTA_RETORNO}?resultado=pendiente`,
+    failure: `${base}${RUTA_RETORNO}?resultado=fallo`,
+  };
+
   return {
     items,
     external_reference: p.id,
     statement_descriptor: "KEWEE MASCOTAS",
-    back_urls: {
-      success: `${base}${RUTA_RETORNO}?resultado=exito`,
-      pending: `${base}${RUTA_RETORNO}?resultado=pendiente`,
-      failure: `${base}${RUTA_RETORNO}?resultado=fallo`,
-    },
-    auto_return: "approved",
+    back_urls: backUrls,
+    // Auto-return sólo si la URL de éxito es públicamente alcanzable; en
+    // localhost (pruebas con token TEST) Mercado Pago lo rechaza.
+    ...(esHostLocal(base) ? {} : { auto_return: "approved" }),
     notification_url: `${base}${RUTA_WEBHOOK}`,
+    // Tarjetas en una sola cuota (decisión de producto): payment_methods.installments = 1.
+    payment_methods: { installments: 1 },
   };
 }
 
