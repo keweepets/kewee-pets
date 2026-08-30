@@ -8,6 +8,7 @@ import type {
   ImagenProductoRow,
 } from "@/lib/supabase/tipos-db";
 import FormularioEditarProducto from "./formulario";
+import GestionStock from "../gestion-stock";
 
 interface Params {
   id: string;
@@ -65,6 +66,12 @@ export default async function PaginaEditarProducto({
     (producto.variantes_producto as VarianteRow[]) ?? []
   ).sort((a, b) => a.orden - b.orden);
 
+  const variantesStock = variantes.map((v) => ({
+    id: v.id,
+    nombre: v.nombre,
+    stock: v.stock,
+  }));
+
   const categorias = (categoriasResult.data ?? []) as Pick<
     CategoriaRow,
     "id" | "nombre" | "slug"
@@ -103,6 +110,8 @@ export default async function PaginaEditarProducto({
         categorias={categorias}
         marcas={marcas}
       />
+
+      <GestionStock variantes={variantesStock} />
     </section>
   );
 }

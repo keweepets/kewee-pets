@@ -330,6 +330,7 @@ async function ejecutarCrearPedido(
       | "estado_pago"
       | "payment_id"
       | "preference_id"
+      | "nota_interna"
       | "created_at"
       | "updated_at"
     > = {

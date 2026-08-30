@@ -490,3 +490,48 @@ export async function toggleActivoProducto(
 
   return { ok: true, id: datos.id };
 }
+
+// ---------------------------------------------------------------------------
+// actualizarStockVariante
+// ---------------------------------------------------------------------------
+
+export interface ActualizarStockEntrada {
+  varianteId: string;
+  stock: number;
+}
+
+export async function actualizarStockVariante(
+  datos: ActualizarStockEntrada
+): Promise<ResultadoAccion> {
+  await requerirAdmin();
+
+  if (!datos.varianteId)
+    return { ok: false, error: "ID de la variante es obligatorio." };
+
+  if (
+    typeof datos.stock !== "number" ||
+    !Number.isInteger(datos.stock) ||
+    datos.stock < 0
+  ) {
+    return { ok: false, error: "El stock debe ser un número entero mayor o igual a 0." };
+  }
+
+  const supabase = obtenerClienteServicioSupabase();
+
+  const { data: existente } = await supabase
+    .from("variantes_producto")
+    .select("id")
+    .eq("id", datos.varianteId)
+    .limit(1);
+  if (!existente || existente.length === 0)
+    return { ok: false, error: "La variante no existe." };
+
+  const { error } = await supabase
+    .from("variantes_producto")
+    .update({ stock: datos.stock })
+    .eq("id", datos.varianteId);
+
+  if (error) return { ok: false, error: `Error al actualizar stock: ${error.message}` };
+
+  return { ok: true, id: datos.varianteId };
+}

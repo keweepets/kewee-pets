@@ -11,6 +11,7 @@
 
 import type { Marca, Producto } from "@/types/producto";
 import { obtenerClienteSupabase } from "@/lib/supabase/cliente";
+import { obtenerClienteServicioSupabase } from "@/lib/supabase/servidor";
 import type {
   CategoriaRow,
   ProductoRowCompleto,
@@ -261,3 +262,140 @@ export type {
   ProductoRowCompleto,
   VarianteRow,
 } from "@/lib/supabase/tipos-db";
+
+// ---------------------------------------------------------------------------
+// KPIs del catálogo para el Dashboard (FASE 8E-4)
+// ---------------------------------------------------------------------------
+
+/** Unidades en inventario a partir de las cuales se considera stock bajo. */
+const UMBRAL_STOCK_BAJO = 5;
+const TOP_N_PRODUCTOS = 5;
+
+export interface TopProducto {
+  nombre: string;
+  unidadesVendidas: number;
+}
+
+export interface VarianteStockBajo {
+  producto: string;
+  variante: string;
+  stock: number;
+}
+
+export interface KpisCatalogo {
+  topProductos: TopProducto[];
+  stockBajo: VarianteStockBajo[];
+  productosActivos: number;
+  marcasActivas: number;
+  categoriasActivas: number;
+}
+
+/**
+ * Métricas de catálogo para el panel admin. Usa service role porque necesita
+ * contar activos sobre el total y leer stock de variantes (la RLS pública solo
+ * expone activos y oculta algunos campos por rol).
+ */
+export async function obtenerKpisCatalogo(): Promise<KpisCatalogo> {
+  const supabase = obtenerClienteServicioSupabase();
+
+  // 1) Top productos por unidades vendidas (detalles_pedido).
+  const { data: detalle, error: errTop } = await supabase
+    .from("detalles_pedido")
+    .select("producto_id, nombre_producto, cantidad, productos(nombre)");
+
+  let topProductos: TopProducto[] = [];
+  if (errTop) {
+    // Re-lanzar con contexto
+    throw new Error(`[catalogo] topProductos: ${errTop.message}`);
+  }
+
+  const ventas = new Map<
+    string,
+    { nombre: string; unidades: number }
+  >();
+  for (const fila of detalle ?? []) {
+    const f = fila as {
+      producto_id: string | null;
+      nombre_producto: string;
+      cantidad: number;
+      productos: unknown;
+    };
+    const clave = f.producto_id ?? f.nombre_producto;
+    const nombreProducto = primerProducto(f.productos)?.nombre ?? f.nombre_producto;
+    const previo = ventas.get(clave) ?? { nombre: nombreProducto, unidades: 0 };
+    ventas.set(clave, { nombre: nombreProducto, unidades: previo.unidades + f.cantidad });
+  }
+
+  // Normaliza la relación embebida (la API devuelve un array en algunos casos).
+  function primerProducto(valor: unknown): { nombre: string; activo?: boolean } | null {
+    if (Array.isArray(valor)) return (valor[0] as { nombre: string }) ?? null;
+    if (valor && typeof valor === "object") return valor as { nombre: string };
+    return null;
+  }
+
+  topProductos = Array.from(ventas.values())
+    .sort((a, b) => b.unidades - a.unidades)
+    .slice(0, TOP_N_PRODUCTOS)
+    .map(({ nombre, unidades }) => ({ nombre, unidadesVendidas: unidades }));
+
+  // 2) Variantes activas con stock bajo, más su producto activo.
+  const { data: variantes, error: errStock } = await supabase
+    .from("variantes_producto")
+    .select("nombre, stock, activo, productos(nombre, activo)")
+    .lte("stock", UMBRAL_STOCK_BAJO);
+
+  let stockBajo: VarianteStockBajo[] = [];
+  if (errStock) {
+    throw new Error(`[catalogo] stockBajo: ${errStock.message}`);
+  }
+
+  stockBajo = (variantes ?? [])
+    .filter((v) => {
+      const fila = v as { activo: boolean; productos: unknown };
+      const producto = primerProducto(fila.productos);
+      return fila.activo && producto?.activo === true;
+    })
+    .filter((v) => (v as { stock: number }).stock > 0)
+    .map((v) => {
+      const fila = v as { nombre: string; stock: number; productos: unknown };
+      const producto = primerProducto(fila.productos);
+      return {
+        producto: producto?.nombre ?? "Producto",
+        variante: fila.nombre,
+        stock: fila.stock,
+      };
+    })
+    .sort((a, b) => a.stock - b.stock)
+    .slice(0, 10);
+
+  // 3) Conteos de activos.
+  const [resProductos, resMarcas, resCategorias] = await Promise.all([
+    supabase
+      .from("productos")
+      .select("id", { count: "exact", head: true })
+      .eq("activo", true),
+    supabase
+      .from("marcas")
+      .select("id", { count: "exact", head: true })
+      .eq("activo", true),
+    supabase
+      .from("categorias")
+      .select("id", { count: "exact", head: true })
+      .eq("activo", true),
+  ]);
+
+  if (resProductos.error)
+    throw new Error(`[catalogo] productosActivos: ${resProductos.error.message}`);
+  if (resMarcas.error)
+    throw new Error(`[catalogo] marcasActivas: ${resMarcas.error.message}`);
+  if (resCategorias.error)
+    throw new Error(`[catalogo] categoriasActivas: ${resCategorias.error.message}`);
+
+  return {
+    topProductos,
+    stockBajo,
+    productosActivos: resProductos.count ?? 0,
+    marcasActivas: resMarcas.count ?? 0,
+    categoriasActivas: resCategorias.count ?? 0,
+  };
+}

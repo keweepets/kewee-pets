@@ -1,7 +1,10 @@
+import Link from "next/link";
+
 import { obtenerClienteServicioSupabase } from "@/lib/supabase/servidor";
 import Badge from "@/components/ui/badge";
 import type { MarcaRow } from "@/lib/supabase/tipos-db";
 import FormularioMarca from "./formulario";
+import BotonToggleMarca from "./boton-toggle";
 
 async function obtenerMarcasAdmin(): Promise<MarcaRow[]> {
   const supabase = obtenerClienteServicioSupabase();
@@ -51,6 +54,7 @@ export default async function PaginaMarcasAdmin() {
                   <th className="px-4 py-3">Nombre</th>
                   <th className="px-4 py-3">Slug</th>
                   <th className="px-4 py-3 text-center">Estado</th>
+                  <th className="px-4 py-3 text-center">Acciones</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-50">
@@ -67,6 +71,20 @@ export default async function PaginaMarcasAdmin() {
                       <Badge tono={marca.activo ? "verdeSuave" : "gris"}>
                         {marca.activo ? "Activa" : "Inactiva"}
                       </Badge>
+                    </td>
+                    <td className="px-4 py-3 text-center">
+                      <div className="flex flex-col items-center gap-1">
+                        <Link
+                          href={`/admin/marcas/${marca.id}`}
+                          className="text-sm font-semibold text-green-600 transition-colors hover:text-green-800"
+                        >
+                          Editar
+                        </Link>
+                        <BotonToggleMarca
+                          marcaId={marca.id}
+                          activo={marca.activo}
+                        />
+                      </div>
                     </td>
                   </tr>
                 ))}

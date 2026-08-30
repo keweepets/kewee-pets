@@ -3,7 +3,7 @@
  * Centraliza etiquetas y tonos visuales de estados y métodos de pago.
  */
 
-import type { EstadoPedido, MetodoPago } from "@/lib/supabase/tipos-db";
+import type { EstadoPago, EstadoPedido, MetodoPago } from "@/lib/supabase/tipos-db";
 
 export const ETIQUETAS_ESTADO: Record<EstadoPedido, string> = {
   recibido: "Recibido",
@@ -35,4 +35,23 @@ export const TONOS_ESTADO: Record<
 export const ETIQUETAS_METODO_PAGO: Record<MetodoPago, string> = {
   contraentrega: "Contra entrega",
   mercadopago: "Mercado Pago",
+};
+
+export const METODOS_PAGO: MetodoPago[] = ["contraentrega", "mercadopago"];
+
+export const ETIQUETAS_ESTADO_PAGO: Record<EstadoPago, string> = {
+  pendiente: "Pago pendiente",
+  pagado: "Pagado",
+  rechazado: "Pago rechazado",
+};
+
+export const ESTADOS_PAGO: EstadoPago[] = ["pendiente", "pagado", "rechazado"];
+
+export const TONOS_ESTADO_PAGO: Record<
+  EstadoPago,
+  "ambar" | "verdeSuave" | "rojo"
+> = {
+  pendiente: "ambar",
+  pagado: "verdeSuave",
+  rechazado: "rojo",
 };

@@ -156,6 +156,7 @@ export interface PedidoRow {
   ciudad: string;
   departamento: string | null;
   notas: string | null;
+  nota_interna: string | null;
   created_at: string;
   updated_at: string;
 }

@@ -5,15 +5,24 @@ import Badge from "@/components/ui/badge";
 import {
   obtenerConteosPorEstado,
   obtenerPedidosAdmin,
+  obtenerResumenMetodoPago,
 } from "@/lib/pedidos/consultas";
+import type { FiltrosPedidosAdmin } from "@/lib/pedidos/consultas";
 import {
   ETIQUETAS_ESTADO,
+  ETIQUETAS_ESTADO_PAGO,
   ETIQUETAS_METODO_PAGO,
   ESTADOS_ORDEN,
   TONOS_ESTADO,
+  TONOS_ESTADO_PAGO,
 } from "@/lib/pedidos/presentacion";
-import type { EstadoPedido } from "@/lib/supabase/tipos-db";
+import type {
+  EstadoPago,
+  EstadoPedido,
+  MetodoPago,
+} from "@/lib/supabase/tipos-db";
 import { formatPriceCOP } from "@/utils/formato";
+import BotonExportar from "./boton-exportar";
 import FiltrosPedidos from "./filtros";
 
 export const metadata: Metadata = {
@@ -34,6 +43,9 @@ interface EntradaParams {
     q?: string;
     desde?: string;
     hasta?: string;
+    metodoPago?: string;
+    estadoPago?: string;
+    pagina?: string;
   }>;
 }
 
@@ -48,27 +60,84 @@ export default async function PaginaPedidosAdmin({
     ? (params.estado as EstadoPedido)
     : undefined;
 
-  const pedidos = await obtenerPedidosAdmin({
+  const metodoPago = (
+    ["contraentrega", "mercadopago"] as string[]
+  ).includes(params.metodoPago ?? "")
+    ? (params.metodoPago as MetodoPago)
+    : undefined;
+
+  const estadoPago = (["pendiente", "pagado", "rechazado"] as string[]).includes(
+    params.estadoPago ?? ""
+  )
+    ? (params.estadoPago as EstadoPago)
+    : undefined;
+
+  const pagina = Math.max(parseInt(params.pagina ?? "1", 10) || 1, 1);
+
+  const filtros: FiltrosPedidosAdmin = {
     estado,
     q: params.q,
     desde: params.desde,
     hasta: params.hasta,
-  });
+    metodoPago,
+    estadoPago,
+  };
 
-  const conteosDb = await obtenerConteosPorEstado();
-  const conteos: Record<string, number> = { total: pedidos.length };
+  const resultado = await obtenerPedidosAdmin({
+    ...filtros,
+    pagina,
+  });
+  const { pedidos, total: totalPedidos, totalPaginas } = resultado;
+
+  const [conteosDb, resumenMetodo] = await Promise.all([
+    obtenerConteosPorEstado(),
+    obtenerResumenMetodoPago(filtros),
+  ]);
+  const conteos: Record<string, number> = { total: totalPedidos };
   for (const c of conteosDb) conteos[c.estado] = c.cantidad;
 
-  const hayFiltros = Boolean(estado || params.q || params.desde || params.hasta);
+  const hayFiltros = Boolean(
+    estado || params.q || params.desde || params.hasta || metodoPago || estadoPago
+  );
+
+  function construirUrPagina(nuevaPagina: number): string {
+    const url = new URLSearchParams(params);
+    url.set("pagina", String(nuevaPagina));
+    return `/admin/pedidos?${url.toString()}`;
+  }
 
   return (
     <section className="flex flex-col gap-6">
       <header>
-        <h1 className="font-display text-2xl font-black text-dark">Pedidos</h1>
-        <p className="mt-1 text-muted">
-          Gestiona los pedidos recibidos en la tienda.
-        </p>
+        <div className="flex flex-wrap items-start justify-between gap-4">
+          <div>
+            <h1 className="font-display text-2xl font-black text-dark">Pedidos</h1>
+            <p className="mt-1 text-muted">
+              Gestiona los pedidos recibidos en la tienda.
+            </p>
+          </div>
+          <BotonExportar filtros={filtros} deshabilitado={totalPedidos === 0} />
+        </div>
       </header>
+
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        {resumenMetodo.map(({ metodoPago, cantidad, sumaTotal }) => (
+          <article
+            key={metodoPago}
+            className="rounded-2xl border border-gray-100 bg-white p-4"
+          >
+            <p className="text-sm font-bold text-muted">
+              {ETIQUETAS_METODO_PAGO[metodoPago]}
+            </p>
+            <p className="mt-1 font-display text-2xl font-black text-dark">
+              {cantidad}
+            </p>
+            <p className="text-xs text-muted">
+              {formatPriceCOP(sumaTotal)}
+            </p>
+          </article>
+        ))}
+      </div>
 
       <FiltrosPedidos conteos={conteos} />
 
@@ -95,6 +164,7 @@ export default async function PaginaPedidosAdmin({
                   <th className="px-4 py-3">Teléfono</th>
                   <th className="px-4 py-3 text-right">Total</th>
                   <th className="px-4 py-3">Método</th>
+                  <th className="px-4 py-3 text-center">Pago</th>
                   <th className="px-4 py-3 text-center">Estado</th>
                   <th className="px-4 py-3 text-center">Acción</th>
                 </tr>
@@ -122,6 +192,11 @@ export default async function PaginaPedidosAdmin({
                       {ETIQUETAS_METODO_PAGO[pedido.metodo_pago]}
                     </td>
                     <td className="px-4 py-3 text-center">
+                      <Badge tono={TONOS_ESTADO_PAGO[pedido.estado_pago]}>
+                        {ETIQUETAS_ESTADO_PAGO[pedido.estado_pago]}
+                      </Badge>
+                    </td>
+                    <td className="px-4 py-3 text-center">
                       <Badge tono={TONOS_ESTADO[pedido.estado]}>
                         {ETIQUETAS_ESTADO[pedido.estado]}
                       </Badge>
@@ -139,10 +214,44 @@ export default async function PaginaPedidosAdmin({
               </tbody>
             </table>
           </div>
-          <footer className="border-t border-gray-100 bg-gray-50 px-4 py-3 text-xs text-muted">
-            {pedidos.length} pedido{pedidos.length !== 1 && "s"}
-            {hayFiltros && " (con filtros aplicados)"}
-          </footer>
+          <div className="flex flex-wrap items-center justify-between gap-3 border-t border-gray-100 bg-gray-50 px-4 py-3">
+            <p className="text-xs text-muted">
+              {totalPedidos} pedido{totalPedidos !== 1 && "s"}
+              {hayFiltros && " (con filtros aplicados)"}
+            </p>
+
+            {totalPaginas > 1 && (
+              <nav className="flex items-center gap-2" aria-label="Paginación">
+                <Link
+                  href={construirUrPagina(pagina - 1)}
+                  aria-disabled={pagina <= 1}
+                  className={
+                    "rounded-lg border px-3 py-1.5 text-sm font-semibold " +
+                    (pagina <= 1
+                      ? "pointer-events-none border-gray-200 text-muted/50 opacity-50"
+                      : "border-gray-200 bg-white text-dark hover:bg-gray-50")
+                  }
+                >
+                  ← Anterior
+                </Link>
+                <span className="text-sm font-semibold text-dark">
+                  Página {pagina} de {totalPaginas}
+                </span>
+                <Link
+                  href={construirUrPagina(pagina + 1)}
+                  aria-disabled={pagina >= totalPaginas}
+                  className={
+                    "rounded-lg border px-3 py-1.5 text-sm font-semibold " +
+                    (pagina >= totalPaginas
+                      ? "pointer-events-none border-gray-200 text-muted/50 opacity-50"
+                      : "border-gray-200 bg-white text-dark hover:bg-gray-50")
+                  }
+                >
+                  Siguiente →
+                </Link>
+              </nav>
+            )}
+          </div>
         </article>
       )}
     </section>

@@ -13,8 +13,6 @@ export const metadata: Metadata = {
   robots: { index: false, follow: false },
 };
 
-const SECCIONES_FUTURAS = ["Promociones"];
-
 /**
  * Shell del panel. requerirAdmin() protege las rutas del grupo (panel):
  * es la frontera real de seguridad (el proxy.ts solo filtra cookies
@@ -73,15 +71,18 @@ export default async function AdminLayout({
           >
             Marcas
           </Link>
-          {SECCIONES_FUTURAS.map((seccion) => (
-            <span
-              key={seccion}
-              aria-disabled="true"
-              className="cursor-not-allowed rounded-full border border-gray-200 bg-white px-4 py-1.5 text-sm font-bold text-gray-300"
-            >
-              {seccion}
-            </span>
-          ))}
+          <Link
+            href="/admin/categorias"
+            className="rounded-full border border-green-200 bg-green-50 px-4 py-1.5 text-sm font-bold text-green-700 transition-colors hover:bg-green-100"
+          >
+            Categorías
+          </Link>
+          <Link
+            href="/admin/promociones"
+            className="rounded-full border border-green-200 bg-green-50 px-4 py-1.5 text-sm font-bold text-green-700 transition-colors hover:bg-green-100"
+          >
+            Promociones
+          </Link>
         </nav>
       </header>
 
