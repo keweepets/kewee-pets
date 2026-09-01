@@ -99,13 +99,14 @@ export default async function PaginaResumenAdmin({
 
         <article className="rounded-2xl border border-gray-100 bg-white p-5">
           <h2 className="text-sm font-black uppercase tracking-widest text-green-600">
-            Ingresos del período
+            Cobrado del período
           </h2>
           <p className="mt-2 font-display text-2xl font-black text-dark">
             {formatPriceCOP(ingresosPeriodo)}
           </p>
           <p className="mt-1 text-sm text-muted">
-            Suma del total de los pedidos · {ETIQUETAS_PERIODO[periodo]}
+            Únicamente pedidos con pago confirmado (estado_pago = pagado) ·{" "}
+            {ETIQUETAS_PERIODO[periodo]}
           </p>
         </article>
       </div>
@@ -139,8 +140,11 @@ export default async function PaginaResumenAdmin({
 
       <article className="rounded-2xl border border-gray-100 bg-white p-5">
         <h2 className="text-sm font-black uppercase tracking-widest text-green-600">
-          Resumen por método de pago
+          Cobrado por método de pago
         </h2>
+        <p className="mt-1 text-xs text-muted">
+          Solo pedidos con pago confirmado (estado_pago = pagado).
+        </p>
         <ul className="mt-3 grid gap-2 sm:grid-cols-2">
           {resumenMetodo.map(({ metodoPago, cantidad, sumaTotal }) => (
             <li
@@ -171,7 +175,7 @@ export default async function PaginaResumenAdmin({
         <div className="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
           <div className="rounded-xl border border-gray-100 px-3 py-2">
             <p className="text-xs font-bold uppercase tracking-wider text-muted">
-              Valor promedio del pedido
+              Valor promedio (cobrado)
             </p>
             <p className="font-display text-xl font-black text-dark">
               {formatPriceCOP(Math.round(metricas.valorPromedioPedido))}
@@ -319,7 +323,7 @@ export default async function PaginaResumenAdmin({
               <tr className="text-xs font-bold uppercase tracking-wider text-muted">
                 <th className="px-3 py-2">Fecha</th>
                 <th className="px-3 py-2 text-right">Pedidos</th>
-                <th className="px-3 py-2 text-right">Ingresos</th>
+                <th className="px-3 py-2 text-right">Cobrado</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-50">

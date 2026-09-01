@@ -13,6 +13,7 @@ import { obtenerClienteServicioSupabase } from "@/lib/supabase/servidor";
 import {
   DESVIACION_UTC_TIENDA_HORAS,
   formatearFechaTienda,
+  limitesRangoEnUtc,
 } from "@/lib/pedidos/periodo";
 import type { RangoFechas } from "@/lib/pedidos/periodo";
 import type {
@@ -146,47 +147,32 @@ export async function obtenerPedidosAdmin(
 
   const termino = filtros.q?.trim();
 
-  // Los filtros `or` de PostgREST no cruzan tablas embebidas, así que para
-  // buscar por cliente (nombre/teléfono) resolvemos primero los cliente_id
-  // y luego filtramos pedidos por esos ids + por numero_pedido.
-  let idsClientes: string[] | null = null;
-  if (termino) {
-    const patron = `%${termino}%`;
+  // La búsqueda por cliente (nombre/teléfono/email) resuelve primero los
+  // clientes.id y filtra pedidos.cliente_id; la búsqueda por numero_pedido
+  // resuelve pedidos.id. Ambos orígenes se combinan con OR para que una lista
+  // vacía de un origen no anule coincidencias válidas del otro.
+  const busqueda = termino
+    ? await resolverBusqueda(supabase, filtros)
+    : null;
 
-    const [resClientes, resNumero] = await Promise.all([
-      supabase
-        .from("clientes")
-        .select("id")
-        .or(`nombre.ilike.${patron},telefono.ilike.${patron},email.ilike.${patron}`),
-      supabase.from("pedidos").select("id").ilike("numero_pedido", patron),
-    ]);
-    if (resClientes.error) await lanzarSiError("obtenerPedidosAdmin", resClientes.error);
-    if (resNumero.error) await lanzarSiError("obtenerPedidosAdmin", resNumero.error);
-
-    const idsPorCliente = (resClientes.data ?? []).map((c) => c.id as string);
-    const idsPorNumero = (resNumero.data ?? []).map((p) => p.id as string);
-    idsClientes = Array.from(new Set([...idsPorCliente, ...idsPorNumero]));
-  }
-
-  function aplicarFiltros(
+  function aplicarFiltrosAdmin(
     base: ReturnType<ReturnType<typeof supabase.from>["select"]>
   ) {
+    const limites = limitesRangoEnUtc(filtros);
     let q = base;
     if (filtros.estado) q = q.eq("estado", filtros.estado);
     if (filtros.metodoPago) q = q.eq("metodo_pago", filtros.metodoPago);
     if (filtros.estadoPago) q = q.eq("estado_pago", filtros.estadoPago);
-    if (filtros.desde) q = q.gte("created_at", `${filtros.desde}T00:00:00`);
-    if (filtros.hasta) q = q.lte("created_at", `${filtros.hasta}T23:59:59.999`);
-    if (idsClientes !== null)
-      q = idsClientes.length === 0 ? q.in("id", []) : q.in("id", idsClientes);
-    return q;
+    if (limites.desdeIso) q = q.gte("created_at", limites.desdeIso);
+    if (limites.hastaIso) q = q.lte("created_at", limites.hastaIso);
+    return aplicarBusqueda(q, busqueda);
   }
 
   const tabla = supabase.from("pedidos");
 
   const [resTotal, resLista] = await Promise.all([
-    aplicarFiltros(tabla.select("id", { count: "exact", head: true })),
-    aplicarFiltros(
+    aplicarFiltrosAdmin(tabla.select("id", { count: "exact", head: true })),
+    aplicarFiltrosAdmin(
       tabla
         .select(SELECT_PEDIDO)
         .order("created_at", { ascending: false })
@@ -216,9 +202,10 @@ export async function obtenerConteosPorEstado(
 ): Promise<ConteoPorEstado[]> {
   const supabase = obtenerClienteServicioSupabase();
 
+  const limites = limitesRangoEnUtc(rango);
   let query = supabase.from("pedidos").select("estado");
-  if (rango.desde) query = query.gte("created_at", `${rango.desde}T00:00:00`);
-  if (rango.hasta) query = query.lte("created_at", `${rango.hasta}T23:59:59.999`);
+  if (limites.desdeIso) query = query.gte("created_at", limites.desdeIso);
+  if (limites.hastaIso) query = query.lte("created_at", limites.hastaIso);
 
   const { data, error } = await query;
 
@@ -268,7 +255,8 @@ export async function obtenerSerie30Dias(
   const { data, error } = await supabase
     .from("pedidos")
     .select("created_at, total")
-    .gte("created_at", desdeUTC.toISOString());
+    .gte("created_at", desdeUTC.toISOString())
+    .eq("estado_pago", "pagado");
 
   if (error) await lanzarSiError("obtenerSerie30Dias", error);
 
@@ -302,7 +290,7 @@ export async function obtenerSerie30Dias(
 }
 
 export interface MetricasComerciales {
-  /** Valor promedio del pedido (suma total / nº pedidos). */
+  /** Valor promedio del pedido cobrado (suma de pagados / nº de pagados). */
   valorPromedioPedido: number;
   /** % de pedidos entregados (0-100). */
   tasaEntregados: number;
@@ -333,37 +321,51 @@ export async function obtenerMetricasComerciales(
 
   let queryPedidos = supabase.from("pedidos").select("estado, total");
   let queryClientes = supabase.from("pedidos").select("cliente_id");
+  // Monetario oficial: solo pedidos con estado_pago = "pagado" cuentan como
+  // "cobrado". Se consulta aparte para no alterar las métricas operativas
+  // (totalPedidos, tasas) que siguen considerando todos los pedidos.
+  let queryPagado = supabase.from("pedidos").select("total");
   if (rango.desde) {
     queryPedidos = queryPedidos.gte("created_at", `${rango.desde}T00:00:00`);
     queryClientes = queryClientes.gte("created_at", `${rango.desde}T00:00:00`);
+    queryPagado = queryPagado.gte("created_at", `${rango.desde}T00:00:00`);
   }
   if (rango.hasta) {
     queryPedidos = queryPedidos.lte("created_at", `${rango.hasta}T23:59:59.999`);
     queryClientes = queryClientes.lte("created_at", `${rango.hasta}T23:59:59.999`);
+    queryPagado = queryPagado.lte("created_at", `${rango.hasta}T23:59:59.999`);
   }
+  queryPagado = queryPagado.eq("estado_pago", "pagado");
 
-  const [resPedidos, resClientes] = await Promise.all([
+  const [resPedidos, resClientes, resPagado] = await Promise.all([
     queryPedidos,
     queryClientes,
+    queryPagado,
   ]);
 
   if (resPedidos.error)
     await lanzarSiError("obtenerMetricasComerciales", resPedidos.error);
   if (resClientes.error)
     await lanzarSiError("obtenerMetricasComerciales", resClientes.error);
+  if (resPagado.error)
+    await lanzarSiError("obtenerMetricasComerciales", resPagado.error);
 
   const pedidos = resPedidos.data ?? [];
   const totalPedidos = pedidos.length;
 
-  let sumaTotal = 0;
+  let sumaCobrado = 0;
+  let cobrado = 0;
   let entregados = 0;
   let canceladosRechazados = 0;
   for (const fila of pedidos) {
     const f = fila as { estado: string; total: number | bigint };
-    sumaTotal += Number(f.total) || 0;
     if (f.estado === "entregado") entregados += 1;
     if (f.estado === "cancelado" || f.estado === "rechazado")
       canceladosRechazados += 1;
+  }
+  for (const fila of resPagado.data ?? []) {
+    sumaCobrado += Number((fila as { total: number | bigint }).total) || 0;
+    cobrado += 1;
   }
 
   const conteoPorCliente = new Map<string, number>();
@@ -380,7 +382,7 @@ export async function obtenerMetricasComerciales(
   const pct = (n: number) => (totalPedidos === 0 ? 0 : (n / totalPedidos) * 100);
 
   return {
-    valorPromedioPedido: totalPedidos === 0 ? 0 : sumaTotal / totalPedidos,
+    valorPromedioPedido: cobrado === 0 ? 0 : sumaCobrado / cobrado,
     tasaEntregados: pct(entregados),
     tasaCanceladosRechazados: pct(canceladosRechazados),
     clientesRepetidos,
@@ -404,13 +406,13 @@ export async function obtenerPedidosParaExportar(
   filtros: FiltrosPedidosAdmin = {}
 ): Promise<PedidoConRelaciones[]> {
   const supabase = obtenerClienteServicioSupabase();
-  const idsClientes = await resolverIdsClientes(supabase, filtros);
+  const busqueda = await resolverBusqueda(supabase, filtros);
 
   const tablas = supabase.from("pedidos");
   let query = tablas
     .select(SELECT_PEDIDO)
     .order("created_at", { ascending: false });
-  query = aplicarFiltros(query, filtros, idsClientes);
+  query = aplicarFiltros(query, filtros, busqueda);
 
   const { data, error } = await query;
   if (error) await lanzarSiError("obtenerPedidosParaExportar", error);
@@ -436,7 +438,7 @@ export async function obtenerResumenMetodoPago(
   filtros: FiltrosPedidosAdmin = {}
 ): Promise<ResumenMetodoPago[]> {
   const supabase = obtenerClienteServicioSupabase();
-  const idsClientes = await resolverIdsClientes(supabase, filtros);
+  const busqueda = await resolverBusqueda(supabase, filtros);
 
   // Grupos permitidos del método/canal actual en la BD.
   const metodos: MetodoPago[] = ["contraentrega", "mercadopago"];
@@ -448,8 +450,8 @@ export async function obtenerResumenMetodoPago(
           .from("pedidos")
           .select("total", { count: "exact", head: true }),
         { ...filtros, metodoPago },
-        idsClientes
-      );
+        busqueda
+      ).eq("estado_pago", "pagado");
       const { count, error } = await query;
       if (error)
         await lanzarSiError("obtenerResumenMetodoPago", error);
@@ -459,8 +461,8 @@ export async function obtenerResumenMetodoPago(
           .from("pedidos")
           .select("total"),
         { ...filtros, metodoPago },
-        idsClientes
-      );
+        busqueda
+      ).eq("estado_pago", "pagado");
       const { data: totales, error: errorSuma } = await sumaQuery;
       if (errorSuma)
         await lanzarSiError("obtenerResumenMetodoPago", errorSuma);
@@ -482,14 +484,28 @@ export async function obtenerResumenMetodoPago(
 }
 
 /**
- * Resuelve los ids de clientes que coinciden con el término de búsqueda
- * (nombre/teléfono/email) y los ids de pedidos por número. Si no hay término
- * de búsqueda, devuelve null (sin filtro por ids).
+ * Resultado de resolver el término de búsqueda (q) en dos orígenes bien
+ * diferenciados, para NO mezclar ids de clientes con ids de pedidos:
+ * · `clientes`: ids de la tabla clientes que coinciden por nombre/teléfono/email
+ *   → filtran la columna `pedidos.cliente_id`.
+ * · `pedidos`: ids de pedidos que coinciden por `numero_pedido`
+ *   → filtran la columna `pedidos.id`.
+ * Una lista vacía en un origen NO anula coincidencias válidas del otro.
  */
-async function resolverIdsClientes(
+interface BusquedaResuelta {
+  clientes: string[];
+  pedidos: string[];
+}
+
+/**
+ * Resuelve el término de búsqueda (q) en ids de clientes (por nombre/teléfono/
+ * email) y en ids de pedidos (por numero_pedido). Si no hay término de
+ * búsqueda, devuelve null (sin filtro por búsqueda).
+ */
+async function resolverBusqueda(
   supabase: ReturnType<typeof obtenerClienteServicioSupabase>,
   filtros: FiltrosPedidosAdmin
-): Promise<string[] | null> {
+): Promise<BusquedaResuelta | null> {
   const termino = filtros.q?.trim();
   if (!termino) return null;
 
@@ -501,29 +517,51 @@ async function resolverIdsClientes(
       .or(`nombre.ilike.${patron},telefono.ilike.${patron},email.ilike.${patron}`),
     supabase.from("pedidos").select("id").ilike("numero_pedido", patron),
   ]);
-  if (resClientes.error) await lanzarSiError("resolverIdsClientes", resClientes.error);
-  if (resNumero.error) await lanzarSiError("resolverIdsClientes", resNumero.error);
+  if (resClientes.error) await lanzarSiError("resolverBusqueda", resClientes.error);
+  if (resNumero.error) await lanzarSiError("resolverBusqueda", resNumero.error);
 
-  const idsPorCliente = (resClientes.data ?? []).map((c) => c.id as string);
-  const idsPorNumero = (resNumero.data ?? []).map((p) => p.id as string);
-  return Array.from(new Set([...idsPorCliente, ...idsPorNumero]));
+  return {
+    clientes: (resClientes.data ?? []).map((c) => c.id as string),
+    pedidos: (resNumero.data ?? []).map((p) => p.id as string),
+  };
+}
+
+/**
+ * Aplica el filtro de búsqueda combinando los dos orígenes con un OR:
+ * pedidos por numero_pedido (pedidos.id) o pedidos de clientes encontrados
+ * (pedidos.cliente_id). Si ambos orígenes están vacíos, fuerza a cero
+ * resultados. Devuelve la query sin cambios si no hay búsqueda.
+ */
+function aplicarBusqueda(
+  query: BuilderSeleccion,
+  busqueda: BusquedaResuelta | null
+): BuilderSeleccion {
+  if (!busqueda) return query;
+
+  const condiciones: string[] = [];
+  if (busqueda.clientes.length > 0)
+    condiciones.push(`cliente_id.in.(${busqueda.clientes.join(",")})`);
+  if (busqueda.pedidos.length > 0)
+    condiciones.push(`id.in.(${busqueda.pedidos.join(",")})`);
+
+  if (condiciones.length === 0) return query.in("id", []);
+  return query.or(condiciones.join(","));
 }
 
 /** Aplica los filtros comunes a una consulta sobre la tabla pedidos. */
 function aplicarFiltros(
   query: BuilderSeleccion,
   filtros: FiltrosPedidosAdmin,
-  idsClientes: string[] | null
+  busqueda: BusquedaResuelta | null
 ): BuilderSeleccion {
+  const limites = limitesRangoEnUtc(filtros);
   let q: BuilderSeleccion = query;
   if (filtros.estado) q = q.eq("estado", filtros.estado);
   if (filtros.metodoPago) q = q.eq("metodo_pago", filtros.metodoPago);
   if (filtros.estadoPago) q = q.eq("estado_pago", filtros.estadoPago);
-  if (filtros.desde) q = q.gte("created_at", `${filtros.desde}T00:00:00`);
-  if (filtros.hasta) q = q.lte("created_at", `${filtros.hasta}T23:59:59.999`);
-  if (idsClientes !== null)
-    q = idsClientes.length === 0 ? q.in("id", []) : q.in("id", idsClientes);
-  return q;
+  if (limites.desdeIso) q = q.gte("created_at", limites.desdeIso);
+  if (limites.hastaIso) q = q.lte("created_at", limites.hastaIso);
+  return aplicarBusqueda(q, busqueda);
 }
 
 /** Tipo de una consulta .select() sobre la tabla pedidos del cliente servicio. */

@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useTransition } from "react";
+import { useTransition, useState } from "react";
 
 import Boton from "@/components/ui/boton";
 import type { CategoriaRow } from "@/lib/supabase/tipos-db";
@@ -22,10 +22,10 @@ export default function FormularioEditarCategoria({
 }) {
   const router = useRouter();
   const [enviando, startTransition] = useTransition();
+  const [parentIdActual, setParentIdActual] = useState<string>(categoria.parent_id ?? "");
 
   function manejarEnvio(fd: FormData) {
     const nombre = String(fd.get("nombre") ?? "").trim();
-    const parentIdRaw = String(fd.get("parentId") ?? "").trim();
     const ordenRaw = String(fd.get("orden") ?? "");
     const activo = fd.get("activo") === "on";
     if (!nombre) return;
@@ -34,7 +34,7 @@ export default function FormularioEditarCategoria({
       const resultado = await editarCategoria({
         id: categoria.id,
         nombre,
-        parentId: parentIdRaw || undefined,
+        parentId: parentIdActual === "" ? null : parentIdActual,
         orden: ordenRaw === "" ? 0 : Number(ordenRaw),
         activo,
       });
@@ -82,7 +82,8 @@ export default function FormularioEditarCategoria({
           </span>
           <select
             name="parentId"
-            defaultValue={categoria.parent_id ?? ""}
+            value={parentIdActual}
+            onChange={(e) => setParentIdActual(e.target.value)}
             className="w-full rounded-xl border-2 border-gray-200 px-4 py-2.5 text-sm transition-colors focus:border-green-400 focus:outline-none"
           >
             <option value="">Sin padre (raíz)</option>

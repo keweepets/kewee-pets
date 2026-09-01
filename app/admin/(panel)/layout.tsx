@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 
 import Boton from "@/components/ui/boton";
+import NavAdmin from "./nav-admin";
 import { requerirAdmin } from "@/lib/auth/sesion";
 import { cerrarSesion } from "../acciones-sesion";
 
@@ -46,44 +46,7 @@ export default async function AdminLayout({
           </div>
         </div>
 
-        <nav
-          aria-label="Secciones del panel"
-          className="mx-auto flex w-full max-w-7xl gap-2 px-6 pb-3"
-        >
-          <span className="rounded-full bg-green-500 px-4 py-1.5 text-sm font-bold text-white">
-            Resumen
-          </span>
-          <Link
-            href="/admin/pedidos"
-            className="rounded-full border border-green-200 bg-green-50 px-4 py-1.5 text-sm font-bold text-green-700 transition-colors hover:bg-green-100"
-          >
-            Pedidos
-          </Link>
-          <Link
-            href="/admin/productos"
-            className="rounded-full border border-green-200 bg-green-50 px-4 py-1.5 text-sm font-bold text-green-700 transition-colors hover:bg-green-100"
-          >
-            Productos
-          </Link>
-          <Link
-            href="/admin/marcas"
-            className="rounded-full border border-green-200 bg-green-50 px-4 py-1.5 text-sm font-bold text-green-700 transition-colors hover:bg-green-100"
-          >
-            Marcas
-          </Link>
-          <Link
-            href="/admin/categorias"
-            className="rounded-full border border-green-200 bg-green-50 px-4 py-1.5 text-sm font-bold text-green-700 transition-colors hover:bg-green-100"
-          >
-            Categorías
-          </Link>
-          <Link
-            href="/admin/promociones"
-            className="rounded-full border border-green-200 bg-green-50 px-4 py-1.5 text-sm font-bold text-green-700 transition-colors hover:bg-green-100"
-          >
-            Promociones
-          </Link>
-        </nav>
+        <NavAdmin />
       </header>
 
       <main className="mx-auto w-full max-w-7xl flex-1 px-6 py-8">

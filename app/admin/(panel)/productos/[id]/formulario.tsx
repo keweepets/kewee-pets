@@ -53,7 +53,6 @@ interface VarianteForm {
   idExistente?: string;
   precio: string;
   precioAnterior: string;
-  stock: string;
   tipoVariante: TipoVariante;
   valor: string;
   unidad: string;
@@ -136,7 +135,6 @@ function varianteVacia(): VarianteForm {
     clave: generarClave(),
     precio: "",
     precioAnterior: "",
-    stock: "0",
     tipoVariante: "unico",
     valor: "",
     unidad: "",
@@ -151,7 +149,6 @@ function varianteDesdeDb(v: VarianteExistente): VarianteForm {
     idExistente: v.id,
     precio: String(v.precio),
     precioAnterior: v.precio_anterior != null ? String(v.precio_anterior) : "",
-    stock: String(v.stock),
     tipoVariante: v.tipo_variante,
     valor: v.valor ?? "",
     unidad: v.unidad ?? "",
@@ -345,7 +342,6 @@ export default function FormularioEditarProducto({
           nombre: generarNombreVariante(v.tipoVariante, v.valor, v.unidad),
           precio: Number(v.precio) || 0,
           precioAnterior: v.precioAnterior ? Number(v.precioAnterior) : undefined,
-          stock: Number(v.stock) || 0,
           orden: i,
           activo: true,
           tipoVariante: v.tipoVariante,
@@ -739,25 +735,8 @@ export default function FormularioEditarProducto({
                     />
                   </div>
 
-                  {/* Fila 4: Stock + SKU + Precio final */}
-                  <div className="grid gap-3 sm:grid-cols-3">
-                    <CampoTexto
-                      label="Stock"
-                      type="number"
-                      min="0"
-                      step="1"
-                      value={variante.stock}
-                      onChange={(e) =>
-                        actualizarVariante(
-                          variante.clave,
-                          "stock",
-                          e.target.value
-                        )
-                      }
-                      placeholder="100"
-                      required
-                    />
-
+                  {/* Fila 4: SKU + Precio final */}
+                  <div className="grid gap-3 sm:grid-cols-2">
                     <div>
                       <label className="mb-1.5 block text-sm font-semibold text-dark">
                         SKU

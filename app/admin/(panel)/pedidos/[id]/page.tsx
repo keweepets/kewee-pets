@@ -63,11 +63,11 @@ export default async function PaginaDetallePedido({
             <Badge tono={TONOS_ESTADO_PAGO[pedido.estado_pago]}>
               {ETIQUETAS_ESTADO_PAGO[pedido.estado_pago]}
             </Badge>
+            <Badge tono="azul">
+              {ETIQUETAS_METODO_PAGO[pedido.metodo_pago]}
+            </Badge>
           </div>
-          <p className="mt-1 text-muted">
-            {formatearFecha(pedido.created_at)} ·{" "}
-            {ETIQUETAS_METODO_PAGO[pedido.metodo_pago]}
-          </p>
+          <p className="mt-1 text-muted">{formatearFecha(pedido.created_at)}</p>
         </header>
         <Link href="/admin/pedidos">
           <Boton variante="contorno" tamano="sm" radio="xl">
@@ -130,7 +130,7 @@ export default async function PaginaDetallePedido({
           {(() => {
             const enlace = construirEnlaceWhatsAppCliente(
               cliente.telefono,
-              `Hola ${cliente.nombre}, te escribimos desde KEWEE MASCOTAS por tu pedido ${pedido.numero_pedido}.`
+              `Hola ${cliente.nombre.trim().split(/\s+/)[0]}, te escribimos desde KEWEE MASCOTAS para confirmar tu pedido ${pedido.numero_pedido} por un total de ${formatPriceCOP(pedido.total)} (${ETIQUETAS_METODO_PAGO[pedido.metodo_pago]}). Antes de prepararlo, confírmanos por favor tu nombre completo, celular, dirección, barrio y ciudad. Si necesitas agregar alguna indicación para la entrega, también puedes enviárnosla.`
             );
             return enlace ? (
               <a

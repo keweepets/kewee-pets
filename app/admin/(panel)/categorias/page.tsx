@@ -1,32 +1,58 @@
 import Link from "next/link";
+import { Fragment } from "react";
 
 import Badge from "@/components/ui/badge";
 import { obtenerClienteServicioSupabase } from "@/lib/supabase/servidor";
 import type { CategoriaRow } from "@/lib/supabase/tipos-db";
 import FormularioCategoria from "./formulario";
 import BotonToggleCategoria from "./boton-toggle";
+import BotonReordenarCategoria from "./boton-reordenar";
+import BotonEliminarCategoria from "./boton-eliminar";
 
 interface NodoCategoria extends CategoriaRow {
   hijos: NodoCategoria[];
+  puedeSubir: boolean;
+  puedeBajar: boolean;
 }
 
-function construirArbol(categorias: CategoriaRow[]): NodoCategoria[] {
-  const filas = [...categorias].sort(
+function conMetadatosOrden(nodos: NodoCategoria[]): NodoCategoria[] {
+  return nodos.map((nodo, indice) => ({
+    ...nodo,
+    puedeSubir: indice > 0,
+    puedeBajar: indice < nodos.length - 1,
+    hijos: conMetadatosOrden(nodo.hijos),
+  }));
+}
+
+function ordenarHermanos<T extends CategoriaRow>(nodos: T[]): T[] {
+  return [...nodos].sort(
     (a, b) => a.orden - b.orden || a.nombre.localeCompare(b.nombre)
   );
-  const nodos = new Map<string, NodoCategoria>();
-  for (const c of filas) {
-    nodos.set(c.id, { ...c, hijos: [] });
+}
+
+/**
+ * Construye el árbol jerárquico por DFS: cada grupo de hermanos (mismo
+ * parent_id) se ordena por su propio `orden`, sin mezclar niveles mediante
+ * un orden plano global.
+ */
+function construirArbol(categorias: CategoriaRow[]): NodoCategoria[] {
+  const ids = new Set(categorias.map((c) => c.id));
+  const hijosPorPadre = new Map<string | null, CategoriaRow[]>();
+  for (const c of categorias) {
+    const clave = c.parent_id && ids.has(c.parent_id) ? c.parent_id : null;
+    const lista = hijosPorPadre.get(clave) ?? [];
+    lista.push(c);
+    hijosPorPadre.set(clave, lista);
   }
-  const raices: NodoCategoria[] = [];
-  for (const nodo of nodos.values()) {
-    if (nodo.parent_id && nodos.has(nodo.parent_id)) {
-      nodos.get(nodo.parent_id)!.hijos.push(nodo);
-    } else {
-      raices.push(nodo);
-    }
+
+  function armarNodo(c: CategoriaRow): NodoCategoria {
+    const hijos = ordenarHermanos(hijosPorPadre.get(c.id) ?? []).map(armarNodo);
+    return { ...c, hijos, puedeSubir: false, puedeBajar: false };
   }
-  return raices;
+
+  return conMetadatosOrden(
+    ordenarHermanos(hijosPorPadre.get(null) ?? []).map(armarNodo)
+  );
 }
 
 function FilasCategoria({
@@ -39,54 +65,71 @@ function FilasCategoria({
   return (
     <>
       {nodos.map((nodo) => (
-        <tr key={nodo.id} className="transition-colors hover:bg-gray-50/50">
-          <td className="px-4 py-3">
-            <div
-              className="flex flex-col"
-              style={{ paddingLeft: `${nivel * 1.5}rem` }}
-            >
-              <span className="font-bold text-dark">{nodo.nombre}</span>
-              <span className="text-xs text-muted">/{nodo.slug}</span>
-            </div>
-          </td>
-          <td className="px-4 py-3 text-muted">
-            {nivel === 0 ? (
-              <span>Raíz</span>
-            ) : (
-              <span className="text-xs font-semibold uppercase tracking-wider text-muted">
-                Subcategoría · nivel {nivel}
-              </span>
-            )}
-          </td>
-          <td className="px-4 py-3 text-center">
-            <Badge tono={nodo.activo ? "verdeSuave" : "gris"}>
-              {nodo.activo ? "Activa" : "Inactiva"}
-            </Badge>
-          </td>
-          <td className="px-4 py-3 text-center">
-            <div className="flex flex-col items-center gap-1">
-              <Link
-                href={`/admin/categorias/${nodo.id}`}
-                className="text-sm font-semibold text-green-600 transition-colors hover:text-green-800"
+        <Fragment key={nodo.id}>
+          <tr className="transition-colors hover:bg-gray-50/50">
+            <td className="px-4 py-3">
+              <div
+                className="flex flex-col"
+                style={{ paddingLeft: `${nivel * 1.5}rem` }}
               >
-                Editar
-              </Link>
-              <BotonToggleCategoria
-                categoriaId={nodo.id}
-                activo={nodo.activo}
-              />
-            </div>
-          </td>
-        </tr>
+                <span className="font-bold text-dark">{nodo.nombre}</span>
+                <span className="text-xs text-muted">/{nodo.slug}</span>
+              </div>
+            </td>
+            <td className="px-4 py-3 text-muted">
+              {nivel === 0 ? (
+                <span>Raíz</span>
+              ) : (
+                <span className="text-xs font-semibold uppercase tracking-wider text-muted">
+                  Subcategoría · nivel {nivel}
+                </span>
+              )}
+            </td>
+            <td className="px-4 py-3 text-center">
+              <Badge tono={nodo.activo ? "verdeSuave" : "gris"}>
+                {nodo.activo ? "Activa" : "Inactiva"}
+              </Badge>
+            </td>
+            <td className="px-4 py-3 text-center">
+              <div className="flex items-center justify-center gap-1">
+                <BotonReordenarCategoria
+                  categoriaId={nodo.id}
+                  direccion="arriba"
+                  activo={nodo.puedeSubir}
+                  etiqueta={`Subir ${nodo.nombre}`}
+                />
+                <BotonReordenarCategoria
+                  categoriaId={nodo.id}
+                  direccion="abajo"
+                  activo={nodo.puedeBajar}
+                  etiqueta={`Bajar ${nodo.nombre}`}
+                />
+              </div>
+            </td>
+            <td className="px-4 py-3 text-center">
+              <div className="flex flex-col items-center gap-1">
+                <Link
+                  href={`/admin/categorias/${nodo.id}`}
+                  className="text-sm font-semibold text-green-600 transition-colors hover:text-green-800"
+                >
+                  Editar
+                </Link>
+                <BotonToggleCategoria
+                  categoriaId={nodo.id}
+                  activo={nodo.activo}
+                />
+                <BotonEliminarCategoria
+                  categoriaId={nodo.id}
+                  nombre={nodo.nombre}
+                />
+              </div>
+            </td>
+          </tr>
+          {nodo.hijos.length > 0 && (
+            <FilasCategoria nodos={nodo.hijos} nivel={nivel + 1} />
+          )}
+        </Fragment>
       ))}
-      {nodos.length > 0 &&
-        nodos.map((nodo) => (
-          <FilasCategoria
-            key={`hijos-${nodo.id}`}
-            nodos={nodo.hijos}
-            nivel={nivel + 1}
-          />
-        ))}
     </>
   );
 }
@@ -143,6 +186,7 @@ export default async function PaginaCategoriasAdmin() {
                   <th className="px-4 py-3">Categoría</th>
                   <th className="px-4 py-3">Jerarquía</th>
                   <th className="px-4 py-3 text-center">Estado</th>
+                  <th className="px-4 py-3 text-center">Orden</th>
                   <th className="px-4 py-3 text-center">Acciones</th>
                 </tr>
               </thead>

@@ -12,7 +12,7 @@ export interface VarianteProductoCrear {
   nombre: string;
   precio: number;
   precioAnterior?: number;
-  stock: number;
+  stock?: number;
   orden?: number;
   tipoVariante?: TipoVariante;
   valor?: string;
@@ -39,7 +39,7 @@ export interface VarianteProductoEditar {
   nombre: string;
   precio: number;
   precioAnterior?: number | null;
-  stock: number;
+  stock?: number;
   orden?: number;
   activo?: boolean;
   tipoVariante?: TipoVariante;
@@ -160,7 +160,7 @@ function validarVariante(
   v: {
     nombre: string;
     precio: number;
-    stock: number;
+    stock?: number;
     precioAnterior?: number | null;
     descuentoPorcentaje?: number | null;
   },
@@ -169,7 +169,10 @@ function validarVariante(
   if (!v.nombre.trim()) return `Variante #${indice + 1}: el nombre es obligatorio.`;
   if (typeof v.precio !== "number" || v.precio < 0)
     return `Variante "${v.nombre}": el precio debe ser un número ≥ 0.`;
-  if (typeof v.stock !== "number" || v.stock < 0 || !Number.isInteger(v.stock))
+  if (
+    v.stock != null &&
+    (typeof v.stock !== "number" || v.stock < 0 || !Number.isInteger(v.stock))
+  )
     return `Variante "${v.nombre}": el stock debe ser un entero ≥ 0.`;
   if (
     v.precioAnterior != null &&
@@ -270,7 +273,7 @@ export async function crearProducto(
         sku,
         precio: v.precio,
         precio_anterior: v.precioAnterior ?? null,
-        stock: v.stock,
+        stock: v.stock ?? 0,
         orden: v.orden ?? i,
         activo: true,
         tipo_variante: v.tipoVariante ?? ("unico" as TipoVariante),
@@ -385,7 +388,6 @@ export async function editarProducto(
           nombre: v.nombre.trim(),
           precio: v.precio,
           precio_anterior: v.precioAnterior ?? null,
-          stock: v.stock,
           orden: v.orden ?? 0,
           activo: v.activo ?? true,
           tipo_variante: v.tipoVariante ?? ("unico" as TipoVariante),
@@ -422,7 +424,7 @@ export async function editarProducto(
           sku,
           precio: v.precio,
           precio_anterior: v.precioAnterior ?? null,
-          stock: v.stock,
+          stock: v.stock ?? 0,
           orden: (v.orden ?? 0) + maxOrden + i + 1,
           activo: true,
           tipo_variante: v.tipoVariante ?? ("unico" as TipoVariante),

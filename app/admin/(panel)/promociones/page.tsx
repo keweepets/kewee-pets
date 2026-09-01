@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 
 import Badge from "@/components/ui/badge";
+import Boton from "@/components/ui/boton";
 import { obtenerClienteServicioSupabase } from "@/lib/supabase/servidor";
 import type { PromocionRow } from "@/lib/supabase/tipos-db";
 import {
@@ -197,13 +198,18 @@ export default async function PaginaPromocionesAdmin() {
 
   return (
     <section className="flex flex-col gap-6">
-      <header>
-        <h1 className="font-display text-2xl font-black text-dark">
-          Promociones
-        </h1>
-        <p className="mt-1 text-muted">
-          Descuentos y ofertas aplicados a productos del catálogo.
-        </p>
+      <header className="flex flex-wrap items-start justify-between gap-4">
+        <div>
+          <h1 className="font-display text-2xl font-black text-dark">
+            Promociones
+          </h1>
+          <p className="mt-1 text-muted">
+            Descuentos y ofertas aplicados a productos del catálogo.
+          </p>
+        </div>
+        <Link href="/admin/promociones/nuevo">
+          <Boton radio="xl">Crear promoción</Boton>
+        </Link>
       </header>
 
       <ResumenConteos

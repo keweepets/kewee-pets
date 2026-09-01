@@ -44,6 +44,37 @@ export interface RangoFechas {
   hasta?: string;
 }
 
+/**
+ * Convierte un rango de fechas expresado en la zona local de la tienda
+ * (America/Bogota, UTC-5) a instantes UTC absolutos (ISO) para consultar
+ * `created_at` correctamente.
+ *
+ * · `desde`  → inicio del día local   (00:00:00.000)
+ * · `hasta`  → fin del día local      (23:59:59.999)
+ *
+ * Así, "desde 2026-08-29" incluye desde el 29/08 00:00 hora Bogotá y
+ * "hasta 2026-08-29" incluye hasta el 29/08 23:59:59.999 hora Bogotá,
+ * independientemente de la zona horaria del servidor o de Postgres.
+ */
+export function limitesRangoEnUtc(
+  rango: RangoFechas
+): { desdeIso?: string; hastaIso?: string } {
+  const resultado: { desdeIso?: string; hastaIso?: string } = {};
+
+  function aInstanteUtc(fecha: string, esFin: boolean): string {
+    const [y, m, d] = fecha.split("-").map(Number);
+    // Inicio: 00:00 del día `fecha`. Fin: 1 ms antes del 00:00 del día siguiente.
+    // Bogotá = UTC-5 → local 00:00 = UTC 05:00 del mismo día (restamos el offset).
+    const milis = Date.UTC(y, m - 1, esFin ? d + 1 : d) - DESVIACION_UTC_TIENDA_HORAS * 60 * 60 * 1000 - (esFin ? 1 : 0);
+    return new Date(milis).toISOString();
+  }
+
+  if (rango.desde) resultado.desdeIso = aInstanteUtc(rango.desde, false);
+  if (rango.hasta) resultado.hastaIso = aInstanteUtc(rango.hasta, true);
+
+  return resultado;
+}
+
 /** Instante UTC correspondiente al inicio (00:00) de HOY en la zona de la tienda. */
 function inicioDeHoyEnTienda(): Date {
   // Bogotá = UTC-5 (constante). Desplazamos el instante actual y leemos sus
