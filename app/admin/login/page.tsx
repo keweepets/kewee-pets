@@ -8,11 +8,11 @@ export const metadata: Metadata = {
 };
 
 interface PropsPagina {
-  searchParams: Promise<{ denegado?: string }>;
+  searchParams: Promise<{ denegado?: string; error?: string }>;
 }
 
 export default async function LoginPage({ searchParams }: PropsPagina) {
-  const { denegado } = await searchParams;
+  const { denegado, error } = await searchParams;
 
   return (
     <div className="flex flex-1 items-center justify-center bg-green-50 px-4 py-16">
@@ -33,6 +33,15 @@ export default async function LoginPage({ searchParams }: PropsPagina) {
             className="mt-4 rounded-xl bg-red-50 px-4 py-3 text-sm font-semibold text-red-600"
           >
             Tu cuenta no tiene acceso al panel.
+          </p>
+        ) : null}
+
+        {error === "recovery" ? (
+          <p
+            role="alert"
+            className="mt-4 rounded-xl bg-red-50 px-4 py-3 text-sm font-semibold text-red-600"
+          >
+            El enlace de recuperación no es válido o ya expiró. Solicita uno nuevo.
           </p>
         ) : null}
 

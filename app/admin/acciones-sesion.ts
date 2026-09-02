@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import {
   crearClienteAuthSupabase,
   leerEmailsAdminPermitidos,
+  requerirAdmin,
   type EstadoLogin,
 } from "@/lib/auth/sesion";
 
@@ -55,3 +56,92 @@ export async function cerrarSesion(): Promise<void> {
   await supabase.auth.signOut();
   redirect("/admin/login");
 }
+
+/** Política de contraseña mínima (fracas en Supabase si es demasiado corta). */
+const LONGITUD_MINIMA_CONTRASENA = 8;
+
+export interface EstadoActualizarPassword {
+  error?: string;
+  exito?: string;
+}
+
+/**
+ * Actualiza la contraseña del admin (flujo de recuperación).
+ * Solo procede con una sesión válida (requerirAdmin) para que únicamente una
+ * recuperación autenticada pueda cambiar la contraseña. Tras el éxito se
+ * redirige al panel.
+ */
+export async function actualizarPassword(
+  _estadoPrevio: EstadoActualizarPassword,
+  formData: FormData
+): Promise<EstadoActualizarPassword> {
+  await requerirAdmin();
+
+  const password = String(formData.get("password") ?? "");
+  const confirmacion = String(formData.get("confirmacion") ?? "");
+
+  if (!password || !confirmacion) {
+    return { error: "Ingresa y confirma tu nueva contraseña." };
+  }
+  if (password !== confirmacion) {
+    return { error: "Las contraseñas no coinciden." };
+  }
+  if (password.length < LONGITUD_MINIMA_CONTRASENA) {
+    return {
+      error: `La contraseña debe tener al menos ${LONGITUD_MINIMA_CONTRASENA} caracteres.`,
+    };
+  }
+
+  const supabase = await crearClienteAuthSupabase();
+  const { error } = await supabase.auth.updateUser({ password });
+
+  if (error) {
+    // Mensaje genérico: no revela detalle interno del error de Supabase.
+    return { error: "No se pudo actualizar la contraseña. Inténtalo de nuevo." };
+  }
+
+  redirect("/admin");
+}
+
+/** Marca si el correo ingresado tiene formato válido (básico). */
+function emailFormatoValido(email: string): boolean {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+}
+
+export interface EstadoSolicitarRecuperacion {
+  exito?: boolean;
+  error?: string;
+}
+
+/**
+ * Emisor del flujo "¿Olvidaste tu contraseña?".
+ * Envía el correo de recuperación de Supabase con redirectTo apuntando a
+ * nuestro callback. La respuesta es deliberadamente genérica y NO revela si
+ * el correo existe (previene enumeración de cuentas).
+ */
+export async function solicitarRecuperacion(
+  _estadoPrevio: EstadoSolicitarRecuperacion,
+  formData: FormData
+): Promise<EstadoSolicitarRecuperacion> {
+  const email = String(formData.get("email") ?? "").trim().toLowerCase();
+
+  if (!email || !emailFormatoValido(email)) {
+    return { error: "Ingresa un correo electrónico válido." };
+  }
+
+  const sitio = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
+  const redirectTo = `${sitio}/auth/callback`;
+
+  const supabase = await crearClienteAuthSupabase();
+  const { error } = await supabase.auth.resetPasswordForEmail(email, {
+    redirectTo,
+  });
+
+  if (error) {
+    // Genérico: no expone el motivo interno.
+    return { error: "No se pudo enviar el correo. Inténtalo de nuevo." };
+  }
+
+  return { exito: true };
+}
+
