@@ -30,6 +30,12 @@ import {
 import type { PedidoConRelaciones } from "@/lib/pedidos/consultas";
 import { construirHtmlConfirmacionPedido } from "@/lib/resend/plantilla-confirmacion";
 import { enviarCorreo } from "@/lib/resend/servicio";
+import { verificarRateLimit } from "@/lib/pedidos/rate-limit";
+
+/** Máximo de unidades que un solo ítem puede solicitar. */
+const CANTIDAD_MAXIMA_POR_ITEM = 20;
+/** Máximo de variantes distintas que puede incluir un pedido. */
+const ITEMS_MAXIMOS_POR_PEDIDO = 15;
 
 /** Datos de identificación/contacto del comprador (checkout como invitado). */
 export interface DatosClientePedido {
@@ -107,9 +113,15 @@ function validarEntrada(entrada: CrearPedidoEntrada): void {
   if (!entrada.items || entrada.items.length === 0) {
     lanzarError("El pedido debe incluir al menos un producto.");
   }
+  if (entrada.items.length > ITEMS_MAXIMOS_POR_PEDIDO) {
+    lanzarError(`El pedido no puede incluir más de ${ITEMS_MAXIMOS_POR_PEDIDO} productos distintos.`);
+  }
   for (const item of entrada.items) {
     if (!Number.isInteger(item.cantidad) || item.cantidad <= 0) {
       lanzarError("La cantidad de cada producto debe ser un entero mayor a cero.");
+    }
+    if (item.cantidad > CANTIDAD_MAXIMA_POR_ITEM) {
+      lanzarError(`La cantidad máxima por producto es ${CANTIDAD_MAXIMA_POR_ITEM} unidades.`);
     }
     if (!item.varianteId) {
       lanzarError("Cada ítem debe indicar la variante.");
@@ -288,6 +300,19 @@ async function ejecutarCrearPedido(
   entrada: CrearPedidoEntrada
 ): Promise<PedidoConRelaciones> {
   validarEntrada(entrada);
+
+  // Rate limit: máximo 3 pedidos por teléfono en ventana de 1 minuto.
+  // Mitiga creación masiva de pedidos, especialmente contraentrega donde
+  // no hay barrera financiera. NOTA: es in-memory por instancia serverless;
+  // no protege contra ataques escalados entre réplicas de Vercel.
+  const claveRate = entrada.cliente.telefono.trim().replace(/\s+/g, "");
+  const rl = verificarRateLimit(claveRate);
+  if (!rl.permitido) {
+    lanzarError(
+      "Has realizado demasiados pedidos recientemente. Por favor espera un minuto e intenta de nuevo."
+    );
+  }
+
   const supabase = obtenerClienteServicioSupabase();
 
   const { items, subtotal } = await recalcularItems(entrada.items);
