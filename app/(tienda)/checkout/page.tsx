@@ -2,12 +2,17 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useCarrito } from "@/components/carrito/proveedor-carrito";
 import { crearPedido } from "@/lib/pedidos/acciones";
 import { iniciarPagoMercadoPago } from "@/lib/mercadopago/acciones";
 import { construirEnlaceWhatsApp } from "@/lib/whatsapp/construir-mensaje-pedido";
 import { RUTAS } from "@/lib/config/tienda";
+import {
+  MINIMO_ENVIO_GRATIS,
+  ZONAS_DOMICILIO,
+  tarifaDomicilioPara,
+} from "@/lib/config/domicilio";
 import { formatPriceCOP } from "@/utils/formato";
 import type { MetodoPago } from "@/lib/supabase/tipos-db";
 import type { PedidoConRelaciones } from "@/lib/pedidos/consultas";
@@ -24,9 +29,6 @@ const DEPARTAMENTOS = [
   "Córdoba",
   "Tolima",
 ];
-
-const COSTO_ENVIO = 8000;
-const ENVIO_GRATIS_DESDE = 150000;
 
 function ImagenPlaceholder() {
   return (
@@ -60,7 +62,7 @@ const inicialCliente: FormularioCliente = { nombre: "", telefono: "", email: "" 
 const inicialDireccion: FormularioDireccion = {
   direccion: "",
   barrio: "",
-  ciudad: "",
+  ciudad: ZONAS_DOMICILIO[0].nombre,
   departamento: DEPARTAMENTOS[0],
   notas: "",
 };
@@ -77,7 +79,10 @@ export default function CheckoutPage() {
   const [pedidoConfirmado, setPedidoConfirmado] = useState<PedidoConRelaciones | null>(null);
   const [redirigiendoMercadoPago, setRedirigiendoMercadoPago] = useState(false);
 
-  const costoEnvio = total >= ENVIO_GRATIS_DESDE ? 0 : COSTO_ENVIO;
+  const costoEnvio = useMemo(
+    () => tarifaDomicilioPara(total, direccion.ciudad),
+    [total, direccion.ciudad],
+  );
   const totalFinal = total + costoEnvio;
 
   const setClienteCampo = (campo: keyof FormularioCliente, valor: string) =>
@@ -121,7 +126,6 @@ export default function CheckoutPage() {
         },
         items: items.map(i => ({ varianteId: i.varianteId, cantidad: i.cantidad })),
         metodoPago,
-        costoEnvio,
       });
       if (!resultado.ok) {
         setError(resultado.error);
@@ -337,14 +341,23 @@ export default function CheckoutPage() {
                 />
               </div>
               <div>
-                <label className="block text-sm font-semibold text-dark mb-1.5">Ciudad</label>
-                <input
-                  type="text"
+                <label className="block text-sm font-semibold text-dark mb-1.5">Ciudad / Zona</label>
+                <select
                   value={direccion.ciudad}
                   onChange={e => setDireccionCampo("ciudad", e.target.value)}
-                  placeholder="Medellín"
-                  className="w-full px-4 py-2.5 border-2 border-gray-200 rounded-xl text-sm focus:outline-none focus:border-green-400 transition-colors"
-                />
+                  className="w-full px-4 py-2.5 border-2 border-gray-200 rounded-xl text-sm focus:outline-none focus:border-green-400 bg-white transition-colors"
+                >
+                  {ZONAS_DOMICILIO.map(zona => (
+                    <option key={zona.id} value={zona.nombre}>{zona.nombre}</option>
+                  ))}
+                </select>
+                <p className="mt-1.5 text-xs text-gray-500">
+                  Domicilio en {direccion.ciudad}:{" "}
+                  {costoEnvio === 0
+                    ? "Gratis"
+                    : formatPriceCOP(costoEnvio)}
+                  {" "}· Envío gratis desde {formatPriceCOP(MINIMO_ENVIO_GRATIS)}
+                </p>
               </div>
               <div>
                 <label className="block text-sm font-semibold text-dark mb-1.5">Barrio</label>

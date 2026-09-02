@@ -429,6 +429,52 @@ export interface ResumenMetodoPago {
   sumaTotal: number;
 }
 
+export interface ResumenVentasYDomicilios {
+  /** Suma de pedidos.subtotal de los pagados (venta de productos). */
+  ventaProductos: number;
+  /** Suma de pedidos.costo_envio de los pagados (domicilios); envío gratis = $0. */
+  domicilios: number;
+  /** Nº de pedidos pagados considerados. */
+  cantidadPagados: number;
+}
+
+/**
+ * Resumen de ventas del período separando VENTA DE PRODUCTOS (suma de
+ * `pedidos.subtotal`) y DOMICILIOS (suma de `pedidos.costo_envio`),
+ * considerando únicamente pedidos con `estado_pago = 'pagado'`.
+ * Los domicilios gratis se contabilizan como $0 (costo_envio = 0).
+ */
+export async function obtenerResumenVentasYDomicilios(
+  rango: RangoFechas = {}
+): Promise<ResumenVentasYDomicilios> {
+  const supabase = obtenerClienteServicioSupabase();
+
+  const limites = limitesRangoEnUtc(rango);
+  let query = supabase
+    .from("pedidos")
+    .select("subtotal, costo_envio")
+    .eq("estado_pago", "pagado");
+  if (limites.desdeIso) query = query.gte("created_at", limites.desdeIso);
+  if (limites.hastaIso) query = query.lte("created_at", limites.hastaIso);
+
+  const { data, error } = await query;
+  if (error) await lanzarSiError("obtenerResumenVentasYDomicilios", error);
+
+  let ventaProductos = 0;
+  let domicilios = 0;
+  for (const fila of data ?? []) {
+    const f = fila as { subtotal: number | bigint; costo_envio: number | bigint };
+    ventaProductos += Number(f.subtotal) || 0;
+    domicilios += Number(f.costo_envio) || 0;
+  }
+
+  return {
+    ventaProductos,
+    domicilios,
+    cantidadPagados: data?.length ?? 0,
+  };
+}
+
 /**
  * Resumen de pedidos por método/canal. En la BD la única dimensión de
  * método/canal disponible es `metodo_pago` (contraentrega | mercadopago);

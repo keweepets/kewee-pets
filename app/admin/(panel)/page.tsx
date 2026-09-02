@@ -3,8 +3,7 @@ import Link from "next/link";
 import Badge from "@/components/ui/badge";
 import {
   obtenerConteosPorEstado,
-  obtenerMetricasComerciales,
-  obtenerResumenMetodoPago,
+  obtenerResumenVentasYDomicilios,
 } from "@/lib/pedidos/consultas";
 import {
   ETIQUETAS_PERIODO,
@@ -16,7 +15,6 @@ import { obtenerKpisCatalogo } from "@/lib/catalogo/consultas";
 import {
   ESTADOS_ORDEN,
   ETIQUETAS_ESTADO,
-  ETIQUETAS_METODO_PAGO,
   TONOS_ESTADO,
 } from "@/lib/pedidos/presentacion";
 import { formatPriceCOP } from "@/utils/formato";
@@ -48,13 +46,11 @@ export default async function PaginaResumenAdmin({
       : null;
   const rango = resolverRangoFechas(periodo, rangoPersonalizado);
 
-  const [conteosDb, resumenMetodo, kpisCatalogo, metricas] =
-    await Promise.all([
-      obtenerConteosPorEstado(rango),
-      obtenerResumenMetodoPago(rango),
-      obtenerKpisCatalogo(),
-      obtenerMetricasComerciales(rango),
-    ]);
+  const [conteosDb, resumenVentas, kpisCatalogo] = await Promise.all([
+    obtenerConteosPorEstado(rango),
+    obtenerResumenVentasYDomicilios(rango),
+    obtenerKpisCatalogo(),
+  ]);
 
   const conteos: Record<string, number> = {};
   for (const c of conteosDb) conteos[c.estado] = c.cantidad;
@@ -63,11 +59,8 @@ export default async function PaginaResumenAdmin({
     (acc, n) => acc + n,
     0
   );
-  const ingresosPeriodo = resumenMetodo.reduce(
-    (acc, m) => acc + m.sumaTotal,
-    0
-  );
-  const ticketPromedioCobrado = Math.round(metricas.valorPromedioPedido);
+  const ventaProductos = resumenVentas.ventaProductos;
+  const domicilios = resumenVentas.domicilios;
 
   const etiquetaPeriodo =
     periodo === "personalizado" && rango.desde && rango.hasta
@@ -101,38 +94,30 @@ export default async function PaginaResumenAdmin({
 
         <article className="rounded-2xl border border-gray-100 bg-white p-5">
           <h2 className="text-sm font-black uppercase tracking-widest text-green-600">
-            Cobrado del período
+            Venta de productos
           </h2>
           <p className="mt-2 font-display text-2xl font-black text-dark">
-            {formatPriceCOP(ingresosPeriodo)}
+            {formatPriceCOP(ventaProductos)}
           </p>
           <p className="mt-1 text-sm text-muted">
             Únicamente pedidos con pago confirmado (estado_pago = pagado) ·{" "}
             {etiquetaPeriodo}
           </p>
+        </article>
 
-          <ul className="mt-4 grid gap-2 sm:grid-cols-2">
-            {resumenMetodo.map(({ metodoPago, cantidad, sumaTotal }) => (
-              <li
-                key={metodoPago}
-                className="flex items-center justify-between gap-3 rounded-xl border border-gray-100 px-3 py-2"
-              >
-                <span className="text-sm font-semibold text-dark">
-                  {ETIQUETAS_METODO_PAGO[metodoPago]}
-                </span>
-                <span className="text-right text-sm">
-                  <span className="font-black text-dark">{cantidad}</span>{" "}
-                  <span className="text-muted">· {formatPriceCOP(sumaTotal)}</span>
-                </span>
-              </li>
-            ))}
-          </ul>
-
-          <p className="mt-3 text-sm text-muted">
-            Ticket promedio cobrado:{" "}
-            <span className="font-bold text-dark">
-              {formatPriceCOP(ticketPromedioCobrado)}
-            </span>
+        <article className="rounded-2xl border border-gray-100 bg-white p-5">
+          <h2 className="text-sm font-black uppercase tracking-widest text-green-600">
+            Domicilios
+          </h2>
+          <p className="mt-2 font-display text-2xl font-black text-dark">
+            {formatPriceCOP(domicilios)}
+          </p>
+          <p className="mt-1 text-sm text-muted">
+            Únicamente pedidos con pago confirmado (estado_pago = pagado) ·{" "}
+            {etiquetaPeriodo}
+          </p>
+          <p className="mt-2 text-xs text-muted">
+            Los pedidos con envío gratis se cuentan como $0.
           </p>
         </article>
       </div>

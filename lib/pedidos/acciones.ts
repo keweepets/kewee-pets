@@ -23,6 +23,10 @@ import {
   type PromocionVigente,
 } from "@/lib/catalogo/promociones";
 import { construirResolutorCategorias } from "@/lib/catalogo/adaptadores";
+import {
+  esZonaDeCobertura,
+  tarifaDomicilioPara,
+} from "@/lib/config/domicilio";
 import type { PedidoConRelaciones } from "@/lib/pedidos/consultas";
 import { construirHtmlConfirmacionPedido } from "@/lib/resend/plantilla-confirmacion";
 import { enviarCorreo } from "@/lib/resend/servicio";
@@ -55,7 +59,6 @@ export interface CrearPedidoEntrada {
   direccionEntrega: DireccionEntrega;
   items: ItemPedidoEntrada[];
   metodoPago: MetodoPago;
-  costoEnvio?: number;
 }
 
 /**
@@ -96,7 +99,9 @@ function validarEntrada(entrada: CrearPedidoEntrada): void {
 
   if (!c.nombre || !c.nombre.trim()) lanzarError("El nombre del cliente es obligatorio.");
   if (!telefonoValido(c.telefono)) lanzarError("El teléfono del cliente no es válido.");
-  if (!d.ciudad || !d.ciudad.trim()) lanzarError("La ciudad es obligatoria.");
+  if (!esZonaDeCobertura(d.ciudad.trim())) {
+    lanzarError("La zona seleccionada no tiene servicio de domicilio.");
+  }
   if (!d.direccion || !d.direccion.trim()) lanzarError("La dirección es obligatoria.");
 
   if (!entrada.items || entrada.items.length === 0) {
@@ -109,10 +114,6 @@ function validarEntrada(entrada: CrearPedidoEntrada): void {
     if (!item.varianteId) {
       lanzarError("Cada ítem debe indicar la variante.");
     }
-  }
-
-  if (entrada.costoEnvio != null && (!Number.isInteger(entrada.costoEnvio) || entrada.costoEnvio < 0)) {
-    lanzarError("El costo de envío debe ser un entero mayor o igual a cero.");
   }
 }
 
@@ -290,7 +291,10 @@ async function ejecutarCrearPedido(
   const supabase = obtenerClienteServicioSupabase();
 
   const { items, subtotal } = await recalcularItems(entrada.items);
-  const costoEnvio = entrada.costoEnvio ?? 0;
+  // El servidor es la única fuente de verdad del domicilio: ignora cualquier
+  // costoEnvio enviado por el navegador y lo recalcula desde el subtotal real
+  // y la ciudad/zona recibida (config central lib/config/domicilio.ts).
+  const costoEnvio = tarifaDomicilioPara(subtotal, entrada.direccionEntrega.ciudad.trim());
   const total = subtotal + costoEnvio;
 
   let idCliente: string | null = null;
