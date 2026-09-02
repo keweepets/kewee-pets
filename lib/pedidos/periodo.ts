@@ -5,7 +5,14 @@
  * en la zona local de la tienda (America/Bogota).
  */
 
-export type Periodo = "hoy" | "7d" | "30d" | "mes" | "todo";
+export type Periodo =
+  | "hoy"
+  | "7d"
+  | "15d"
+  | "30d"
+  | "mes"
+  | "personalizado"
+  | "todo";
 
 /** Zona horaria única de la tienda (todas las métricas la usan). */
 export const ZONA_HORARIA_TIENDA = "America/Bogota";
@@ -24,19 +31,31 @@ export function formatearFechaTienda(fecha: Date): string {
   return formateador.format(fecha);
 }
 
-export const PERIODOS: Periodo[] = ["hoy", "7d", "30d", "mes", "todo"];
+/** Opciones del selector de período. "todo" queda como valor por defecto (sin
+ * píldora): cualquier rango amplio se cubre con "Personalizar". */
+export const PERIODOS: Periodo[] = [
+  "hoy",
+  "7d",
+  "15d",
+  "30d",
+  "mes",
+  "personalizado",
+];
 
 export const ETIQUETAS_PERIODO: Record<Periodo, string> = {
   hoy: "Hoy",
   "7d": "Últimos 7 días",
+  "15d": "Últimos 15 días",
   "30d": "Últimos 30 días",
   mes: "Este mes",
+  personalizado: "Personalizar",
   todo: "Todo",
 };
 
-/** Normaliza una cadena de searchParams a un Periodo válido (default "todo"). */
+/** Normaliza una cadena de searchParams a un Periodo válido (default "mes",
+ * que es el período predeterminado del Dashboard). */
 export function parsearPeriodo(valor: string | null | undefined): Periodo {
-  return PERIODOS.includes(valor as Periodo) ? (valor as Periodo) : "todo";
+  return PERIODOS.includes(valor as Periodo) ? (valor as Periodo) : "mes";
 }
 
 export interface RangoFechas {
@@ -93,11 +112,53 @@ function inicioDeHoyEnTienda(): Date {
 }
 
 /**
+ * Valida una fecha en formato YYYY-MM-DD. Devuelve la fecha si es real y con
+ * el formato exacto; si no (vacía, mal formada o fecha inexistente), undefined.
+ */
+export function validarFechaRango(
+  valor: string | null | undefined
+): string | undefined {
+  if (!valor) return undefined;
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(valor)) return undefined;
+  const [anio, mes, dia] = valor.split("-").map(Number);
+  const fecha = new Date(Date.UTC(anio, mes - 1, dia));
+  if (
+    fecha.getUTCFullYear() !== anio ||
+    fecha.getUTCMonth() !== mes - 1 ||
+    fecha.getUTCDate() !== dia
+  ) {
+    return undefined;
+  }
+  return valor;
+}
+
+/**
+ * Resuelve el rango personalizado desde/hasta (YYYY-MM-DD, zona de la tienda).
+ * Devuelve null si falta alguna fecha o el rango es inválido (desde > hasta).
+ */
+export function resolverRangoPersonalizado(
+  desde?: string | null,
+  hasta?: string | null
+): RangoFechas | null {
+  const desdeValido = validarFechaRango(desde);
+  const hastaValido = validarFechaRango(hasta);
+  if (!desdeValido || !hastaValido) return null;
+  if (desdeValido > hastaValido) return null;
+  return { desde: desdeValido, hasta: hastaValido };
+}
+
+/**
  * Resuelve el rango (YYYY-MM-DD, zona de la tienda) para un período.
  * "todo" → sin rango (filtro desactivado, comportamiento actual).
+ * "personalizado" → usa el rango de fechas elegido por el usuario; si es
+ * inválido o falta, cae a "todo" (sin filtro).
  */
-export function resolverRangoFechas(periodo: Periodo): RangoFechas {
+export function resolverRangoFechas(
+  periodo: Periodo,
+  personalizado: RangoFechas | null = null
+): RangoFechas {
   if (periodo === "todo") return {};
+  if (periodo === "personalizado") return personalizado ?? {};
 
   const inicioHoy = inicioDeHoyEnTienda();
 
@@ -114,6 +175,8 @@ export function resolverRangoFechas(periodo: Periodo): RangoFechas {
     );
   } else if (periodo === "30d") {
     desde = new Date(inicioHoy.getTime() - 29 * 24 * 60 * 60 * 1000);
+  } else if (periodo === "15d") {
+    desde = new Date(inicioHoy.getTime() - 14 * 24 * 60 * 60 * 1000);
   } else if (periodo === "7d") {
     desde = new Date(inicioHoy.getTime() - 6 * 24 * 60 * 60 * 1000);
   } // "hoy" → desde == hasta
