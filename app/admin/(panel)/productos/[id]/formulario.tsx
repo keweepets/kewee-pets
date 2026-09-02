@@ -102,6 +102,18 @@ const OPCIONES_UNIDAD: Record<TipoVariante, string[]> = {
   presentacion: ["unidad", "paquete", "caja"],
 };
 
+// Tipos cuyo "valor" viene de un selector cerrado (no de un campo libre).
+// En estos casos el selector escribe en `valor` y `unidad` queda vacía.
+const TIPOS_VALOR_EN_SELECT: Record<TipoVariante, boolean> = {
+  unico: false,
+  peso: false,
+  talla: true,
+  tamano: true,
+  cantidad: false,
+  volumen: false,
+  presentacion: false,
+};
+
 const PLACEHOLDER_VALOR: Record<TipoVariante, string> = {
   unico: "",
   peso: "ej. 15",
@@ -295,8 +307,12 @@ export default function FormularioEditarProducto({
           if (v.clave !== clave) return v;
           const actualizada = { ...v, [campo]: valor };
           if (campo === "tipoVariante") {
+            const tipo = valor as TipoVariante;
             actualizada.valor = "";
-            actualizada.unidad = OPCIONES_UNIDAD[valor as TipoVariante]?.[0] ?? "";
+            // Para tipos con selector de valor cerrado, la unidad no aplica.
+            actualizada.unidad = TIPOS_VALOR_EN_SELECT[tipo]
+              ? ""
+              : OPCIONES_UNIDAD[tipo]?.[0] ?? "";
           }
           return actualizada;
         })
@@ -346,7 +362,9 @@ export default function FormularioEditarProducto({
           activo: true,
           tipoVariante: v.tipoVariante,
           valor: v.valor.trim() || undefined,
-          unidad: v.unidad.trim() || undefined,
+          unidad: TIPOS_VALOR_EN_SELECT[v.tipoVariante]
+            ? undefined
+            : v.unidad.trim() || undefined,
           descuentoPorcentaje: v.descuentoPorcentaje
             ? Number(v.descuentoPorcentaje)
             : undefined,
@@ -561,7 +579,9 @@ export default function FormularioEditarProducto({
         <div className="flex flex-col gap-4">
           {variantes.map((variante, indice) => {
             const mostrarValor = variante.tipoVariante !== "unico";
+            const valorEnSelect = TIPOS_VALOR_EN_SELECT[variante.tipoVariante];
             const opcionesUnidad = OPCIONES_UNIDAD[variante.tipoVariante];
+            const opcionesValor = valorEnSelect ? opcionesUnidad : [];
             const precioFinal = preciosFinales[variante.clave] ?? 0;
             const tieneDescuento =
               Number(variante.descuentoPorcentaje) > 0;
@@ -629,7 +649,39 @@ export default function FormularioEditarProducto({
                   </div>
 
                   {/* Fila 2: Valor + Unidad (solo si tipo ≠ Único) */}
-                  {mostrarValor && (
+                  {mostrarValor && valorEnSelect && (
+                    <div>
+                      <label className="mb-1.5 block text-sm font-semibold text-dark">
+                        {variante.tipoVariante === "talla"
+                          ? "Talla"
+                          : "Tamaño"}
+                      </label>
+                      <select
+                        value={variante.valor}
+                        onChange={(e) =>
+                          actualizarVariante(
+                            variante.clave,
+                            "valor",
+                            e.target.value
+                          )
+                        }
+                        className="w-full rounded-xl border-2 border-gray-200 px-4 py-2.5 text-sm transition-colors focus:border-green-400 focus:outline-none"
+                      >
+                        <option value="">
+                          {variante.tipoVariante === "talla"
+                            ? "Seleccionar talla"
+                            : "Seleccionar tamaño"}
+                        </option>
+                        {opcionesValor.map((o) => (
+                          <option key={o} value={o}>
+                            {o}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  )}
+
+                  {mostrarValor && !valorEnSelect && (
                     <div className="grid gap-3 sm:grid-cols-2">
                       <CampoTexto
                         label="Valor"

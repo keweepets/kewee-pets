@@ -163,6 +163,8 @@ function validarVariante(
     stock?: number;
     precioAnterior?: number | null;
     descuentoPorcentaje?: number | null;
+    tipo?: TipoVariante;
+    valor?: string | null;
   },
   indice: number
 ): string | null {
@@ -186,6 +188,34 @@ function validarVariante(
       v.descuentoPorcentaje > 100)
   )
     return `Variante "${v.nombre}": descuentoPorcentaje debe estar entre 0 y 100.`;
+  const tipo = v.tipo ?? "unico";
+  const valor = (v.valor ?? "").trim();
+  if (tipo !== "unico" && !valor)
+    return `Variante "${v.nombre}": debes indicar un valor distinto de vacío (${tipo}).`;
+  return null;
+}
+
+function normalizarUnidadSegunTipo(
+  tipo: TipoVariante,
+  unidad: string | null | undefined
+): string | null {
+  const unidadTexto = (unidad ?? "").trim();
+  if (tipo === "talla") return null;
+  if (tipo === "tamano") return null;
+  return unidadTexto || null;
+}
+
+function encontrarNombreVarianteDuplicado(
+  variantes: { nombre?: string }[]
+): string | null {
+  const vistos = new Map<string, number>();
+  for (const v of variantes) {
+    if (!v.nombre) continue;
+    const clave = v.nombre.trim().toLowerCase();
+    const veces = (vistos.get(clave) ?? 0) + 1;
+    vistos.set(clave, veces);
+    if (veces > 1) return v.nombre.trim();
+  }
   return null;
 }
 
@@ -212,9 +242,16 @@ export async function crearProducto(
     return { ok: false, error: "El producto debe tener al menos una variante." };
 
   for (const [i, v] of datos.variantes.entries()) {
-    const error = validarVariante(v, i);
+    const error = validarVariante(
+      { ...v, tipo: v.tipoVariante, valor: v.valor },
+      i
+    );
     if (error) return { ok: false, error };
   }
+
+  const duplicadoNombre = encontrarNombreVarianteDuplicado(datos.variantes);
+  if (duplicadoNombre)
+    return { ok: false, error: `Hay dos variantes con el mismo nombre: "${duplicadoNombre}". Usa valores distintos.` };
 
   // ── Verificar que categoría y marca existen ───────────────────────────
   const { data: cat } = await supabase
@@ -278,7 +315,10 @@ export async function crearProducto(
         activo: true,
         tipo_variante: v.tipoVariante ?? ("unico" as TipoVariante),
         valor: v.valor?.trim() || null,
-        unidad: v.unidad?.trim() || null,
+        unidad: normalizarUnidadSegunTipo(
+          v.tipoVariante ?? ("unico" as TipoVariante),
+          v.unidad
+        ),
         descuento_porcentaje: v.descuentoPorcentaje ?? null,
       };
     })
@@ -322,9 +362,16 @@ export async function editarProducto(
     return { ok: false, error: "El producto debe tener al menos una variante." };
 
   for (const [i, v] of datos.variantes.entries()) {
-    const error = validarVariante(v, i);
+    const error = validarVariante(
+      { ...v, tipo: v.tipoVariante, valor: v.valor },
+      i
+    );
     if (error) return { ok: false, error };
   }
+
+  const duplicadoNombre = encontrarNombreVarianteDuplicado(datos.variantes);
+  if (duplicadoNombre)
+    return { ok: false, error: `Hay dos variantes con el mismo nombre: "${duplicadoNombre}". Usa valores distintos.` };
 
   // ── Verificar que el producto existe ──────────────────────────────────
   const { data: existente } = await supabase
@@ -392,7 +439,10 @@ export async function editarProducto(
           activo: v.activo ?? true,
           tipo_variante: v.tipoVariante ?? ("unico" as TipoVariante),
           valor: v.valor?.trim() || null,
-          unidad: v.unidad?.trim() || null,
+          unidad: normalizarUnidadSegunTipo(
+            v.tipoVariante ?? ("unico" as TipoVariante),
+            v.unidad
+          ),
           descuento_porcentaje: v.descuentoPorcentaje ?? null,
         })
         .eq("id", v.id!)
@@ -429,7 +479,10 @@ export async function editarProducto(
           activo: true,
           tipo_variante: v.tipoVariante ?? ("unico" as TipoVariante),
           valor: v.valor?.trim() || null,
-          unidad: v.unidad?.trim() || null,
+          unidad: normalizarUnidadSegunTipo(
+            v.tipoVariante ?? ("unico" as TipoVariante),
+            v.unidad
+          ),
           descuento_porcentaje: v.descuentoPorcentaje ?? null,
         };
       })
