@@ -57,6 +57,11 @@ export default function FormularioPromocion({
       return;
     }
 
+    if (fechaInicio && fechaFin && new Date(fechaFin) < new Date(fechaInicio)) {
+      setError("La fecha de fin debe ser igual o posterior a la fecha de inicio.");
+      return;
+    }
+
     setError(null);
     startTransition(async () => {
       const resultado = await crearPromocion({
@@ -88,6 +93,7 @@ export default function FormularioPromocion({
             type="text"
             required
             placeholder="Ej: 15% en alimentos"
+            maxLength={100}
             className="w-full rounded-xl border-2 border-gray-200 px-4 py-2.5 text-sm transition-colors focus:border-green-400 focus:outline-none"
           />
         </label>

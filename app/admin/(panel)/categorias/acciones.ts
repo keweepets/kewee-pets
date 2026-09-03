@@ -105,10 +105,16 @@ export async function crearCategoria(
 
   const nombre = entrada.nombre.trim();
   const parentId = entrada.parentId?.trim() ? entrada.parentId.trim() : null;
-  const orden = entrada.orden ?? 0;
+  const orden = Math.round(Number(entrada.orden ?? 0));
 
   if (!nombre) {
     return { ok: false, error: "El nombre es obligatorio." };
+  }
+  if (nombre.length > 100) {
+    return { ok: false, error: "El nombre no puede exceder 100 caracteres." };
+  }
+  if (!Number.isFinite(orden) || orden < 0 || orden > 10000 || !Number.isInteger(orden)) {
+    return { ok: false, error: "El orden debe ser un entero entre 0 y 10000." };
   }
 
   const slug = generarSlug(nombre);
@@ -161,11 +167,17 @@ export async function editarCategoria(
 
   const nombre = entrada.nombre.trim();
   const parentId = entrada.parentId?.trim() ? entrada.parentId.trim() : null;
-  const orden = entrada.orden ?? 0;
+  const orden = Math.round(Number(entrada.orden ?? 0));
   const activo = entrada.activo ?? true;
 
   if (!nombre) {
     return { ok: false, error: "El nombre es obligatorio." };
+  }
+  if (nombre.length > 100) {
+    return { ok: false, error: "El nombre no puede exceder 100 caracteres." };
+  }
+  if (!Number.isFinite(orden) || orden < 0 || orden > 10000 || !Number.isInteger(orden)) {
+    return { ok: false, error: "El orden debe ser un entero entre 0 y 10000." };
   }
 
   const slug = generarSlug(nombre);
@@ -231,6 +243,8 @@ export async function editarCategoria(
 // Reordenar (dentro del mismo grupo de hermanos)
 // ---------------------------------------------------------------------------
 
+const DIRECCIONES_VALIDAS: DireccionOrden[] = ["arriba", "abajo"];
+
 export type DireccionOrden = "arriba" | "abajo";
 
 /**
@@ -243,6 +257,13 @@ export async function moverCategoriaOrden(entrada: {
   direccion: DireccionOrden;
 }): Promise<{ ok: boolean; error?: string }> {
   await requerirAdmin();
+
+  if (!entrada.id) {
+    return { ok: false, error: "El ID de la categoría es obligatorio." };
+  }
+  if (!DIRECCIONES_VALIDAS.includes(entrada.direccion)) {
+    return { ok: false, error: "La dirección de movimiento no es válida." };
+  }
 
   const supabase = obtenerClienteServicioSupabase();
 

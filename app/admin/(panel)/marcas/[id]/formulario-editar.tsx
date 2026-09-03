@@ -52,6 +52,7 @@ export default function FormularioEditarMarca({ marca }: { marca: MarcaRow }) {
             type="text"
             required
             defaultValue={marca.nombre}
+            maxLength={100}
             className="w-full rounded-xl border-2 border-gray-200 px-4 py-2.5 text-sm transition-colors focus:border-green-400 focus:outline-none"
           />
         </label>

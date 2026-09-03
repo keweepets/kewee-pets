@@ -71,6 +71,7 @@ export default function FormularioEditarCategoria({
             type="text"
             required
             defaultValue={categoria.nombre}
+            maxLength={100}
             className="w-full rounded-xl border-2 border-gray-200 px-4 py-2.5 text-sm transition-colors focus:border-green-400 focus:outline-none"
           />
         </label>
@@ -102,6 +103,7 @@ export default function FormularioEditarCategoria({
             type="number"
             defaultValue={categoria.orden}
             min={0}
+            max={10000}
             className="w-full max-w-[120px] rounded-xl border-2 border-gray-200 px-4 py-2.5 text-sm transition-colors focus:border-green-400 focus:outline-none"
           />
         </label>

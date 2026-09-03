@@ -99,16 +99,31 @@ function telefonoValido(telefono: string): boolean {
   return /^[0-9+\-\s()]{7,20}$/.test(telefono.trim());
 }
 
+const METODOS_PAGO_VALIDOS: MetodoPago[] = ["contraentrega", "mercadopago"];
+
+function emailValido(email: string): boolean {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+}
+
 function validarEntrada(entrada: CrearPedidoEntrada): void {
   const c = entrada.cliente;
   const d = entrada.direccionEntrega;
 
   if (!c.nombre || !c.nombre.trim()) lanzarError("El nombre del cliente es obligatorio.");
+  if (c.nombre.trim().length > 100) lanzarError("El nombre del cliente no puede exceder 100 caracteres.");
   if (!telefonoValido(c.telefono)) lanzarError("El teléfono del cliente no es válido.");
+  if (c.email && !emailValido(c.email.trim())) lanzarError("El correo electrónico no es válido.");
+  if (!METODOS_PAGO_VALIDOS.includes(entrada.metodoPago)) {
+    lanzarError("El método de pago no es válido.");
+  }
   if (!esZonaDeCobertura(d.ciudad.trim())) {
     lanzarError("La zona seleccionada no tiene servicio de domicilio.");
   }
   if (!d.direccion || !d.direccion.trim()) lanzarError("La dirección es obligatoria.");
+  if (d.direccion.trim().length > 200) lanzarError("La dirección no puede exceder 200 caracteres.");
+  if (d.barrio && d.barrio.trim().length > 100) lanzarError("El barrio no puede exceder 100 caracteres.");
+  if (d.departamento && d.departamento.trim().length > 100) lanzarError("El departamento no puede exceder 100 caracteres.");
+  if (d.notas && d.notas.trim().length > 500) lanzarError("Las notas no pueden exceder 500 caracteres.");
 
   if (!entrada.items || entrada.items.length === 0) {
     lanzarError("El pedido debe incluir al menos un producto.");

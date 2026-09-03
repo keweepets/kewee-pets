@@ -102,7 +102,10 @@ export interface ResultadoExportarCSV {
 }
 
 function escaparCsv(valor: string | number | null | undefined): string {
-  const texto = valor === null || valor === undefined ? "" : String(valor);
+  let texto = valor === null || valor === undefined ? "" : String(valor);
+  if (/^[=+\-@\t\r\n]/.test(texto)) {
+    texto = "'" + texto;
+  }
   if (/[",\n\r]/.test(texto)) {
     return `"${texto.replace(/"/g, '""')}"`;
   }

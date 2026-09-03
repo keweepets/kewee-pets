@@ -321,6 +321,7 @@ export default function FormularioProducto({
           value={nombre}
           onChange={(e) => cambiarNombre(e.target.value)}
           placeholder="Collar antipulgas para perro"
+          maxLength={100}
           required
         />
 
@@ -389,6 +390,7 @@ export default function FormularioProducto({
           value={descripcionCorta}
           onChange={(e) => setDescripcionCorta(e.target.value)}
           placeholder="Protección completa contra pulgas y garrapatas"
+          maxLength={200}
         />
 
         <div>
@@ -404,6 +406,7 @@ export default function FormularioProducto({
             value={descripcion}
             onChange={(e) => setDescripcion(e.target.value)}
             rows={4}
+            maxLength={5000}
             placeholder="Descripción detallada del producto..."
             className="w-full rounded-xl border-2 border-gray-200 px-4 py-2.5 text-sm transition-colors focus:border-green-400 focus:outline-none"
           />

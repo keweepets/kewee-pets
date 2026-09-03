@@ -27,6 +27,9 @@ export async function crearMarca(
   if (!nombre) {
     return { ok: false, error: "El nombre es obligatorio." };
   }
+  if (nombre.length > 100) {
+    return { ok: false, error: "El nombre no puede exceder 100 caracteres." };
+  }
 
   const supabase = obtenerClienteServicioSupabase();
   const slug = generarSlug(nombre);
@@ -80,6 +83,9 @@ export async function editarMarca(
   const nombre = entrada.nombre.trim();
   if (!nombre) {
     return { ok: false, error: "El nombre es obligatorio." };
+  }
+  if (nombre.length > 100) {
+    return { ok: false, error: "El nombre no puede exceder 100 caracteres." };
   }
 
   const supabase = obtenerClienteServicioSupabase();

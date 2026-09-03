@@ -56,6 +56,9 @@ async function validarPromocion(
   if (!nombre) {
     return { ok: false, error: "El nombre es obligatorio." };
   }
+  if (nombre.length > 100) {
+    return { ok: false, error: "El nombre no puede exceder 100 caracteres." };
+  }
 
   const tipo = entrada.tipo;
   if (tipo !== "porcentaje" && tipo !== "monto") {
@@ -68,8 +71,8 @@ async function validarPromocion(
   if (tipo === "porcentaje" && (entrada.valor <= 0 || entrada.valor > 100)) {
     return { ok: false, error: "Para porcentaje, el valor debe estar entre 1 y 100." };
   }
-  if (tipo === "monto" && entrada.valor <= 0) {
-    return { ok: false, error: "Para monto, el valor debe ser mayor a 0." };
+  if (tipo === "monto" && (entrada.valor <= 0 || entrada.valor > 999_999_999)) {
+    return { ok: false, error: "Para monto, el valor debe estar entre 1 y 999.999.999." };
   }
 
   const alcance = entrada.alcance;

@@ -317,6 +317,7 @@ export default function CheckoutPage() {
                   value={cliente.nombre}
                   onChange={e => setClienteCampo("nombre", e.target.value)}
                   placeholder="Juan García"
+                  maxLength={100}
                   className="w-full px-4 py-2.5 border-2 border-gray-200 rounded-xl text-sm focus:outline-none focus:border-green-400 transition-colors"
                 />
               </div>
@@ -329,6 +330,7 @@ export default function CheckoutPage() {
                   value={cliente.telefono}
                   onChange={e => setClienteCampo("telefono", e.target.value)}
                   placeholder="+57 300 000 0000"
+                  maxLength={20}
                   className="w-full px-4 py-2.5 border-2 border-gray-200 rounded-xl text-sm focus:outline-none focus:border-green-400 transition-colors"
                 />
               </div>
@@ -341,6 +343,7 @@ export default function CheckoutPage() {
                   value={cliente.email}
                   onChange={e => setClienteCampo("email", e.target.value)}
                   placeholder="juan@email.com"
+                  maxLength={254}
                   className="w-full px-4 py-2.5 border-2 border-gray-200 rounded-xl text-sm focus:outline-none focus:border-green-400 transition-colors"
                 />
               </div>
@@ -358,6 +361,7 @@ export default function CheckoutPage() {
                   value={direccion.direccion}
                   onChange={e => setDireccionCampo("direccion", e.target.value)}
                   placeholder="Calle 45 #23-12"
+                  maxLength={200}
                   className="w-full px-4 py-2.5 border-2 border-gray-200 rounded-xl text-sm focus:outline-none focus:border-green-400 transition-colors"
                 />
               </div>
@@ -387,6 +391,7 @@ export default function CheckoutPage() {
                   value={direccion.barrio}
                   onChange={e => setDireccionCampo("barrio", e.target.value)}
                   placeholder="El Poblado"
+                  maxLength={100}
                   className="w-full px-4 py-2.5 border-2 border-gray-200 rounded-xl text-sm focus:outline-none focus:border-green-400 transition-colors"
                 />
               </div>
@@ -411,6 +416,7 @@ export default function CheckoutPage() {
                   onChange={e => setDireccionCampo("notas", e.target.value)}
                   rows={2}
                   placeholder="Referencias, instrucciones de entrega, etc."
+                  maxLength={500}
                   className="w-full px-4 py-2.5 border-2 border-gray-200 rounded-xl text-sm focus:outline-none focus:border-green-400 transition-colors resize-none"
                 />
               </div>

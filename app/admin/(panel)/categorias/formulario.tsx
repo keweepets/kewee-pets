@@ -52,6 +52,7 @@ export default function FormularioCategoria({
           type="text"
           required
           placeholder="Ej: Alimentos"
+          maxLength={100}
           className="w-full rounded-xl border-2 border-gray-200 px-4 py-2.5 text-sm transition-colors focus:border-green-400 focus:outline-none"
         />
       </div>

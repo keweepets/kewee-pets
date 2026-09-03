@@ -169,8 +169,9 @@ function validarVariante(
   indice: number
 ): string | null {
   if (!v.nombre.trim()) return `Variante #${indice + 1}: el nombre es obligatorio.`;
-  if (typeof v.precio !== "number" || v.precio < 0)
-    return `Variante "${v.nombre}": el precio debe ser un número ≥ 0.`;
+  if (v.nombre.trim().length > 100) return `Variante "${v.nombre}": el nombre no puede exceder 100 caracteres.`;
+  if (typeof v.precio !== "number" || v.precio < 0 || v.precio > 999_999_999)
+    return `Variante "${v.nombre}": el precio debe estar entre 0 y 999.999.999.`;
   if (
     v.stock != null &&
     (typeof v.stock !== "number" || v.stock < 0 || !Number.isInteger(v.stock))
@@ -233,7 +234,11 @@ export async function crearProducto(
   // ── Validaciones ──────────────────────────────────────────────────────
   const nombreLimpio = datos.nombre?.trim();
   if (!nombreLimpio) return { ok: false, error: "El nombre del producto es obligatorio." };
-  if (nombreLimpio.length > 200) return { ok: false, error: "El nombre no puede exceder 200 caracteres." };
+  if (nombreLimpio.length > 100) return { ok: false, error: "El nombre no puede exceder 100 caracteres." };
+  if (datos.descripcion && datos.descripcion.trim().length > 5000)
+    return { ok: false, error: "La descripción no puede exceder 5000 caracteres." };
+  if (datos.descripcionCorta && datos.descripcionCorta.trim().length > 200)
+    return { ok: false, error: "La descripción corta no puede exceder 200 caracteres." };
 
   if (!datos.categoriaId) return { ok: false, error: "La categoría es obligatoria." };
   if (!datos.marcaId) return { ok: false, error: "La marca es obligatoria." };
@@ -353,7 +358,11 @@ export async function editarProducto(
 
   const nombreLimpio = datos.nombre?.trim();
   if (!nombreLimpio) return { ok: false, error: "El nombre del producto es obligatorio." };
-  if (nombreLimpio.length > 200) return { ok: false, error: "El nombre no puede exceder 200 caracteres." };
+  if (nombreLimpio.length > 100) return { ok: false, error: "El nombre no puede exceder 100 caracteres." };
+  if (datos.descripcion && datos.descripcion.trim().length > 5000)
+    return { ok: false, error: "La descripción no puede exceder 5000 caracteres." };
+  if (datos.descripcionCorta && datos.descripcionCorta.trim().length > 200)
+    return { ok: false, error: "La descripción corta no puede exceder 200 caracteres." };
 
   if (!datos.categoriaId) return { ok: false, error: "La categoría es obligatoria." };
   if (!datos.marcaId) return { ok: false, error: "La marca es obligatoria." };

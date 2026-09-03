@@ -62,9 +62,16 @@ export default function FormularioEditarPromocion({
   function manejarEnvio(fd: FormData) {
     const valor = Number(fd.get("valor"));
     const objetivoIdRaw = String(fd.get("objetivoId") ?? "").trim();
+    const fechaInicio = String(fd.get("fechaInicio") ?? "");
+    const fechaFin = String(fd.get("fechaFin") ?? "");
 
     if (Number.isNaN(valor)) {
       setError("El valor debe ser un número.");
+      return;
+    }
+
+    if (fechaInicio && fechaFin && new Date(fechaFin) < new Date(fechaInicio)) {
+      setError("La fecha de fin debe ser igual o posterior a la fecha de inicio.");
       return;
     }
 
@@ -77,8 +84,8 @@ export default function FormularioEditarPromocion({
         valor,
         alcance,
         objetivoId: objetivoIdRaw || undefined,
-        fechaInicio: String(fd.get("fechaInicio") ?? ""),
-        fechaFin: String(fd.get("fechaFin") ?? ""),
+        fechaInicio,
+        fechaFin,
         activo: fd.get("activo") === "on",
       });
       if (resultado.ok) {
@@ -114,6 +121,7 @@ export default function FormularioEditarPromocion({
             type="text"
             required
             defaultValue={promo.nombre}
+            maxLength={100}
             className="w-full rounded-xl border-2 border-gray-200 px-4 py-2.5 text-sm transition-colors focus:border-green-400 focus:outline-none"
           />
         </label>

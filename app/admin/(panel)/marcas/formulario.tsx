@@ -39,6 +39,7 @@ export default function FormularioMarca() {
           type="text"
           required
           placeholder="Ej: Royal Canin"
+          maxLength={100}
           className="w-full rounded-xl border-2 border-gray-200 px-4 py-2.5 text-sm transition-colors focus:border-green-400 focus:outline-none"
         />
       </div>
