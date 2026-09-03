@@ -10,6 +10,37 @@
 
 ---
 
+## ÚLTIMA SESIÓN — A1: endurecimiento de `iniciarPagoMercadoPago()` (FASE 9)
+
+**Commit:** `d0d74f1` — `feat: harden Mercado Pago payment initiation` (pusheado a `origin/master`).
+
+### Qué se hizo (todo verificado: `pnpm lint` y `pnpm exec tsc --noEmit` pasan)
+- **A1 hardening** en `lib/mercadopago/acciones.ts` (`iniciarPagoMercadoPago`):
+  - Rechaza si `metodo_pago !== "mercadopago"`.
+  - Rechaza si `estado_pago === "pagado"` (pedido ya pagado).
+  - Solo permite iniciar pago si `estado` es `recibido` o `en_proceso` (rechaza `entregado`, `cancelado`, `rechazado`).
+  - **Idempotencia:** si el pedido ya tiene `preference_id`, reutiliza la preferencia existente (vía `obtenerPreferenciaPago` → `Preference.get`) y devuelve su `initPoint` sin crear otra ni sobrescribir el id.
+- **`lib/mercadopago/preferencias.ts`:** nueva función `obtenerPreferenciaPago(preferenceId)` (solo lectura con el SDK).
+- **Navegación checkout ↔ Mercado Pago** (`app/(tienda)/checkout/page.tsx`):
+  - `window.location.href = pago.initPoint` (apila `/checkout` en el historial → Atrás desde MP vuelve a `/checkout`).
+  - `setRedirigiendoMercadoPago(false)` inmediatamente antes de redirigir, para que la última pintura congelada por bfcache tenga el flag en `false`.
+  - Guard del render intermedio: `if (redirigiendoMercadoPago && enviando)`.
+  - `useEffect` con listener `pageshow` que resetea ambos flags cuando `event.persisted === true` (refuerzo bfcache).
+
+### Estado de validación A1
+- **A1.1 — idempotencia / reutilización de `preference_id`: VALIDADO.** (Script `prueba-a1.mts` ejecutado con `tsx` sobre el pedido KP-000047: la 1ª y 2ª llamada devolvieron el **mismo `initPoint`/`pref_id`** que el `preference_id` persistido, sin crear otra ni sobrescribir. El script fue **eliminado**; no queda en producción.)
+- **A1.2 — pedido ya pagado (`estado_pago = pagado`): PENDIENTE.** No probado (requiere `UPDATE` externo en Supabase); la guarda devuelve `{ ok: false, error: "Este pedido ya está pagado..." }`.
+- **A1.3 — pedido contraentrega (`metodo_pago = contraentrega`): PENDIENTE.** No probado (requiere `UPDATE` externo en Supabase); la guarda devuelve `{ ok: false, error: "Este pedido no se paga con Mercado Pago..." }`.
+
+### Navegación MP → Atrás → Checkout
+- **VALIDADA**: Al pulsar Atrás desde Mercado Pago se vuelve a `/checkout` (formulario), sin quedar atascado en "Redirigiendo a Mercado Pago" ni saltar a `/carrito`.
+
+### Orden de trabajo pendiente (Fase 9)
+- Completar la validación de A1.2 y A1.3 (con script temporal `tsx` + `UPDATE` de Supabase, y eliminar el script al terminar, como se hizo con `prueba-a1.mts`).
+- **NO reabrir ni modificar** lo ya cerrado: C2, C3, variantes, dashboard, domicilios, etc.
+
+---
+
 ## 1. ESTADO DEL PROYECTO
 
 ### Stack actual
