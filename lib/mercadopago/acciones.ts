@@ -17,7 +17,10 @@
 "use server";
 
 import { obtenerPedidoPorId } from "@/lib/pedidos/consultas";
-import { crearPreferenciaPago } from "@/lib/mercadopago/preferencias";
+import {
+  crearPreferenciaPago,
+  obtenerPreferenciaPago,
+} from "@/lib/mercadopago/preferencias";
 import { obtenerClienteServicioSupabase } from "@/lib/supabase/servidor";
 
 /** Resultado de iniciarPagoMercadoPago(). Sigue la convención { ok, error }
@@ -56,11 +59,49 @@ export async function iniciarPagoMercadoPago(
       };
     }
 
-    // 2) Crea la preferencia a partir de los snapshots del pedido persistido.
+    // 2) Comprobaciones de coherencia del pedido para poder cobrar con MP.
+    if (pedido.pedido.metodo_pago !== "mercadopago") {
+      return {
+        ok: false,
+        error:
+          "Este pedido no se paga con Mercado Pago. Verifica el método de pago.",
+      };
+    }
+
+    if (pedido.pedido.estado_pago === "pagado") {
+      return {
+        ok: false,
+        error: "Este pedido ya está pagado. No es necesario iniciar otro pago.",
+      };
+    }
+
+    if (
+      pedido.pedido.estado !== "recibido" &&
+      pedido.pedido.estado !== "en_proceso"
+    ) {
+      return {
+        ok: false,
+        error:
+          "Este pedido no puede pagarse en su estado actual con Mercado Pago.",
+      };
+    }
+
+    const supabase = obtenerClienteServicioSupabase();
+
+    // 3) Idempotencia: si ya existe una preferencia, reutilizarla sin recrearla
+    //    ni sobrescribir preference_id (evita pagos/preferencias repetidos).
+    if (pedido.pedido.preference_id) {
+      const existente = await obtenerPreferenciaPago(
+        pedido.pedido.preference_id
+      );
+      return { ok: true, initPoint: existente.initPoint };
+    }
+
+    // 4) Crea la preferencia a partir de los snapshots del pedido persistido
+    //    (mismos montos de siempre; nunca se aceptan precios del cliente).
     const { id: preferenceId, initPoint } = await crearPreferenciaPago(pedido);
 
-    // 3) Persiste preference_id SOLO (ni payment_id ni estado_pago).
-    const supabase = obtenerClienteServicioSupabase();
+    // 5) Persiste preference_id SOLO (ni payment_id ni estado_pago).
     const { error } = await supabase
       .from("pedidos")
       .update({ preference_id: preferenceId })
@@ -75,7 +116,7 @@ export async function iniciarPagoMercadoPago(
       };
     }
 
-    // 4) Devuelve la URL de Mercado Pago para redirigir al comprador.
+    // 6) Devuelve la URL de Mercado Pago para redirigir al comprador.
     return { ok: true, initPoint };
   } catch (e) {
     const mensaje =

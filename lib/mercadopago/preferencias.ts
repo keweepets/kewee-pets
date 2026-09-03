@@ -170,3 +170,33 @@ export async function crearPreferenciaPago(
     throw new Error(`[mercadopago] crearPreferenciaPago: ${mensaje}`);
   }
 }
+
+/**
+ * Obtiene una preferencia de Mercado Pago ya existente por su id y devuelve
+ * su init_point, sin crear una preferencia nueva. Se usa para la idempotencia
+ * de iniciarPagoMercadoPago: si el pedido ya registró una preferencia, se
+ * reutiliza esa URL de checkout en lugar de generar otra y sobrescribir.
+ * Lanza Error con mensaje claro ante cualquier fallo.
+ */
+export async function obtenerPreferenciaPago(
+  preferenceId: string
+): Promise<ResultadoPreferenciaPago> {
+  const cliente = obtenerClienteMercadoPago();
+  const preferencia = new Preference(cliente);
+
+  try {
+    const { id, init_point } = await preferencia.get({
+      preferenceId,
+    });
+    if (!init_point) {
+      throw new Error(
+        "Mercado Pago devolvió la preferencia pero sin init_point."
+      );
+    }
+    return { id: id ?? preferenceId, initPoint: init_point };
+  } catch (e) {
+    const mensaje =
+      e instanceof Error ? e.message : "Error desconocido al obtener la preferencia.";
+    throw new Error(`[mercadopago] obtenerPreferenciaPago: ${mensaje}`);
+  }
+}

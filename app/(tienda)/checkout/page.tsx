@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useCarrito } from "@/components/carrito/proveedor-carrito";
 import { crearPedido } from "@/lib/pedidos/acciones";
 import { iniciarPagoMercadoPago } from "@/lib/mercadopago/acciones";
@@ -79,6 +79,22 @@ export default function CheckoutPage() {
   const [pedidoConfirmado, setPedidoConfirmado] = useState<PedidoConRelaciones | null>(null);
   const [redirigiendoMercadoPago, setRedirigiendoMercadoPago] = useState(false);
 
+  // Al volver desde Mercado Pago (navegación a origen externo), el navegador
+  // restaura /checkout desde el bfcache conservando el estado React previo, por
+  // lo que redirigiendoMercadoPago quedaba atascado en la pantalla intermedia.
+  // Al restaurarse (event.persisted), se resetean esos estados para volver al
+  // formulario de checkout en lugar de la pantalla "Redirigiendo a Mercado Pago".
+  useEffect(() => {
+    const manejarPageshow = (evento: PageTransitionEvent) => {
+      if (evento.persisted) {
+        setRedirigiendoMercadoPago(false);
+        setEnviando(false);
+      }
+    };
+    window.addEventListener("pageshow", manejarPageshow);
+    return () => window.removeEventListener("pageshow", manejarPageshow);
+  }, []);
+
   const costoEnvio = useMemo(
     () => tarifaDomicilioPara(total, direccion.ciudad),
     [total, direccion.ciudad],
@@ -148,6 +164,11 @@ export default function CheckoutPage() {
         setRedirigiendoMercadoPago(false);
         return;
       }
+      // Antes de salir a Mercado Pago se apaga el flag de "redirigiendo" para
+      // que, si el navegador restaura /checkout desde el bfcache al volver,
+      // el guard (redirigiendoMercadoPago && enviando) sea false y se muestre
+      // el formulario en lugar de la pantalla intermedia.
+      setRedirigiendoMercadoPago(false);
       window.location.href = pago.initPoint;
     } catch (e) {
       setError(e instanceof Error ? e.message : "No se pudo crear el pedido. Inténtalo de nuevo.");
@@ -215,7 +236,7 @@ export default function CheckoutPage() {
     );
   }
 
-  if (redirigiendoMercadoPago) {
+  if (redirigiendoMercadoPago && enviando) {
     return (
       <div className="px-4 sm:px-6 lg:px-8 py-12 max-w-3xl mx-auto w-full">
         <div className="bg-white border border-gray-100 rounded-3xl p-10 shadow-sm text-center">
