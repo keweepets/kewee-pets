@@ -39,6 +39,21 @@ export const metadata: Metadata = {
     description:
       "Alimentos premium, juguetes y accesorios seleccionados con amor. Contraentrega en Medellín.",
     url: siteUrl,
+    images: [
+      {
+        url: `${siteUrl}/og-default.png`,
+        width: 1200,
+        height: 630,
+        alt: "Kewee Mascotas — Tienda de productos para mascotas",
+      },
+    ],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Kewee Mascotas — Todo lo que tu mascota necesita",
+    description:
+      "Alimentos premium, juguetes y accesorios seleccionados con amor. Contraentrega en Medellín.",
+    images: [`${siteUrl}/og-default.png`],
   },
 };
 
