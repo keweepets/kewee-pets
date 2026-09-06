@@ -36,8 +36,8 @@ export default function CambiarEstadoPedido({
   }
 
   return (
-    <form action={manejarCambio} className="flex items-end gap-3">
-      <label className="flex flex-1 flex-col gap-1.5">
+    <form action={manejarCambio} className="flex flex-wrap items-end gap-3">
+      <label className="flex min-w-0 flex-1 flex-col gap-1.5">
         <span className="text-sm font-semibold text-dark">Estado</span>
         <select
           name="estado"

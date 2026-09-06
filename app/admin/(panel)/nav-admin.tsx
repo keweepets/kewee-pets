@@ -23,7 +23,7 @@ export default function NavAdmin() {
   return (
     <nav
       aria-label="Secciones del panel"
-      className="mx-auto flex w-full max-w-7xl gap-2 px-6 pb-3"
+      className="mx-auto flex w-full max-w-7xl flex-wrap gap-2 px-6 pb-3"
     >
       {ENLACES.map(({ href, etiqueta }) => {
         const activo =

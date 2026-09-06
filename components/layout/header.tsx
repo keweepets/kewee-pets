@@ -35,7 +35,7 @@ export default function Header() {
   return (
     <header className="sticky top-0 z-50 bg-white border-b border-gray-100 shadow-sm">
       {/* Fila principal */}
-      <div className="max-w-7xl mx-auto px-4 h-14 flex items-center gap-3">
+      <div className="max-w-7xl mx-auto px-4 h-14 flex items-center gap-2 sm:gap-3">
         {/* Logo */}
         <Link
           href={RUTAS.inicio}
@@ -61,7 +61,7 @@ export default function Header() {
         </Link>
 
         {/* Búsqueda */}
-        <form onSubmit={manejarBusqueda} className="flex-1 max-w-xl mx-auto" role="search">
+        <form onSubmit={manejarBusqueda} className="flex-1 max-w-xl mx-auto min-w-0" role="search">
           <div className="relative">
             <input
               type="text"
@@ -91,7 +91,7 @@ export default function Header() {
             target="_blank"
             rel="noopener noreferrer"
             aria-label="Escríbenos por WhatsApp"
-            className="h-9 w-9 flex items-center justify-center rounded-full hover:bg-green-50 text-green-500 transition-colors"
+            className="h-9 w-9 flex items-center justify-center rounded-full hover:bg-green-50 text-green-500 transition-colors max-[380px]:hidden"
           >
             <IconoWhatsApp className="w-5 h-5" />
           </a>

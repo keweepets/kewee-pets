@@ -866,7 +866,7 @@ export default function FormularioEditarProducto({
                     Principal
                   </span>
                 )}
-                <div className="absolute bottom-0 left-0 right-0 flex justify-center gap-1 bg-black/40 py-1 opacity-0 transition-opacity group-hover:opacity-100">
+                <div className="absolute bottom-0 left-0 right-0 flex justify-center gap-1 bg-black/40 py-1 opacity-100 transition-opacity sm:opacity-0 sm:group-hover:opacity-100">
                   {img.orden !== 0 && (
                     <button
                       type="button"
@@ -934,7 +934,7 @@ export default function FormularioEditarProducto({
                   <button
                     type="button"
                     onClick={() => eliminarImagenPendiente(i)}
-                    className="absolute right-1 top-1 rounded-full bg-red-500 p-0.5 text-white opacity-0 transition-opacity group-hover:opacity-100"
+                    className="absolute right-1 top-1 rounded-full bg-red-500 p-0.5 text-white opacity-100 transition-opacity sm:opacity-0 sm:group-hover:opacity-100"
                   >
                     <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
                       <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />

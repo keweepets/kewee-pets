@@ -25,8 +25,8 @@ export default function FormularioMarca() {
   }
 
   return (
-    <form action={manejarEnvio} className="flex items-end gap-3">
-      <div className="flex-1">
+    <form action={manejarEnvio} className="flex flex-wrap items-end gap-3">
+      <div className="min-w-0 flex-1">
         <label
           htmlFor="nombre-marca"
           className="mb-1.5 block text-sm font-semibold text-dark"
