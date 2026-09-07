@@ -121,7 +121,7 @@ export default function HeroSlider() {
             key={d.eyebrow}
             onClick={() => setIndice(i)}
             aria-label={`Ir a diapositiva ${i + 1}`}
-            className={`h-2 rounded-full transition-all ${
+            className={`relative h-2 rounded-full transition-all after:absolute after:-inset-1.5 after:content-[''] ${
               i === indice ? "w-6 bg-green-500" : "w-2 bg-white/50 hover:bg-white/70"
             }`}
           />

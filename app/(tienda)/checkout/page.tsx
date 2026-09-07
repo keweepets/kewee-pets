@@ -318,7 +318,7 @@ export default function CheckoutPage() {
                   onChange={e => setClienteCampo("nombre", e.target.value)}
                   placeholder="Juan García"
                   maxLength={100}
-                  className="w-full px-4 py-2.5 border-2 border-gray-200 rounded-xl text-sm focus:outline-none focus:border-green-400 transition-colors"
+                  className="w-full px-4 py-2.5 border-2 border-gray-200 rounded-xl text-base sm:text-sm focus:outline-none focus:border-green-400 transition-colors"
                 />
               </div>
               <div>
@@ -331,7 +331,7 @@ export default function CheckoutPage() {
                   onChange={e => setClienteCampo("telefono", e.target.value)}
                   placeholder="+57 300 000 0000"
                   maxLength={20}
-                  className="w-full px-4 py-2.5 border-2 border-gray-200 rounded-xl text-sm focus:outline-none focus:border-green-400 transition-colors"
+                  className="w-full px-4 py-2.5 border-2 border-gray-200 rounded-xl text-base sm:text-sm focus:outline-none focus:border-green-400 transition-colors"
                 />
               </div>
               <div className="sm:col-span-2">
@@ -344,7 +344,7 @@ export default function CheckoutPage() {
                   onChange={e => setClienteCampo("email", e.target.value)}
                   placeholder="juan@email.com"
                   maxLength={254}
-                  className="w-full px-4 py-2.5 border-2 border-gray-200 rounded-xl text-sm focus:outline-none focus:border-green-400 transition-colors"
+                  className="w-full px-4 py-2.5 border-2 border-gray-200 rounded-xl text-base sm:text-sm focus:outline-none focus:border-green-400 transition-colors"
                 />
               </div>
             </div>
@@ -362,7 +362,7 @@ export default function CheckoutPage() {
                   onChange={e => setDireccionCampo("direccion", e.target.value)}
                   placeholder="Calle 45 #23-12"
                   maxLength={200}
-                  className="w-full px-4 py-2.5 border-2 border-gray-200 rounded-xl text-sm focus:outline-none focus:border-green-400 transition-colors"
+                  className="w-full px-4 py-2.5 border-2 border-gray-200 rounded-xl text-base sm:text-sm focus:outline-none focus:border-green-400 transition-colors"
                 />
               </div>
               <div>
@@ -370,7 +370,7 @@ export default function CheckoutPage() {
                 <select
                   value={direccion.ciudad}
                   onChange={e => setDireccionCampo("ciudad", e.target.value)}
-                  className="w-full px-4 py-2.5 border-2 border-gray-200 rounded-xl text-sm focus:outline-none focus:border-green-400 bg-white transition-colors"
+                  className="w-full px-4 py-2.5 border-2 border-gray-200 rounded-xl text-base sm:text-sm focus:outline-none focus:border-green-400 bg-white transition-colors"
                 >
                   {ZONAS_DOMICILIO.map(zona => (
                     <option key={zona.id} value={zona.nombre}>{zona.nombre}</option>
@@ -392,7 +392,7 @@ export default function CheckoutPage() {
                   onChange={e => setDireccionCampo("barrio", e.target.value)}
                   placeholder="El Poblado"
                   maxLength={100}
-                  className="w-full px-4 py-2.5 border-2 border-gray-200 rounded-xl text-sm focus:outline-none focus:border-green-400 transition-colors"
+                  className="w-full px-4 py-2.5 border-2 border-gray-200 rounded-xl text-base sm:text-sm focus:outline-none focus:border-green-400 transition-colors"
                 />
               </div>
               <div className="sm:col-span-2">
@@ -400,7 +400,7 @@ export default function CheckoutPage() {
                 <select
                   value={direccion.departamento}
                   onChange={e => setDireccionCampo("departamento", e.target.value)}
-                  className="w-full px-4 py-2.5 border-2 border-gray-200 rounded-xl text-sm focus:outline-none focus:border-green-400 bg-white transition-colors"
+                  className="w-full px-4 py-2.5 border-2 border-gray-200 rounded-xl text-base sm:text-sm focus:outline-none focus:border-green-400 bg-white transition-colors"
                 >
                   {DEPARTAMENTOS.map(d => (
                     <option key={d} value={d}>{d}</option>
@@ -417,7 +417,7 @@ export default function CheckoutPage() {
                   rows={2}
                   placeholder="Referencias, instrucciones de entrega, etc."
                   maxLength={500}
-                  className="w-full px-4 py-2.5 border-2 border-gray-200 rounded-xl text-sm focus:outline-none focus:border-green-400 transition-colors resize-none"
+                  className="w-full px-4 py-2.5 border-2 border-gray-200 rounded-xl text-base sm:text-sm focus:outline-none focus:border-green-400 transition-colors resize-none"
                 />
               </div>
             </div>

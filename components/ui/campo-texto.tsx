@@ -31,7 +31,7 @@ export default function CampoTexto({
         aria-invalid={error ? true : undefined}
         aria-describedby={error ? `${idCampo}-error` : ayuda ? `${idCampo}-ayuda` : undefined}
         className={cn(
-          "w-full rounded-xl border-2 px-4 py-2.5 text-sm transition-colors focus:outline-none",
+          "w-full rounded-xl border-2 px-4 py-2.5 text-base sm:text-sm transition-colors focus:outline-none",
           error
             ? "border-red-300 focus:border-red-400"
             : "border-gray-200 focus:border-green-400",

@@ -51,7 +51,7 @@ function ChipFiltro({
   return (
     <Link
       href={href}
-      className={`px-4 py-1.5 rounded-full text-sm font-bold border transition-colors ${
+      className={`px-4 py-2 sm:py-1.5 rounded-full text-sm font-bold border transition-colors ${
         activo
           ? "bg-green-500 border-green-500 text-white"
           : "bg-white border-gray-200 text-gray-600 hover:border-green-400 hover:text-green-600"
@@ -187,14 +187,14 @@ export default async function CatalogoPage({
             defaultValue={busqueda ?? ""}
             placeholder="Buscar productos..."
             aria-label="Buscar productos"
-            className="w-full sm:max-w-xs px-4 py-2 rounded-full border border-gray-200 bg-white text-sm text-dark placeholder:text-gray-400 focus:outline-none focus:border-green-500 focus:ring-2 focus:ring-green-100"
+            className="w-full sm:max-w-xs px-4 py-2 rounded-full border border-gray-200 bg-white text-base sm:text-sm text-dark placeholder:text-gray-400 focus:outline-none focus:border-green-500 focus:ring-2 focus:ring-green-100"
           />
           {marcas.length > 0 && (
             <select
               name="marca"
               defaultValue={marcaId ?? ""}
               aria-label="Filtrar por marca"
-              className="px-4 py-2 rounded-full border border-gray-200 bg-white text-sm text-gray-600 focus:outline-none focus:border-green-500"
+              className="px-4 py-2 rounded-full border border-gray-200 bg-white text-base sm:text-sm text-gray-600 focus:outline-none focus:border-green-500"
             >
               <option value="">Todas las marcas</option>
               {marcas.map((m) => (
