@@ -122,7 +122,7 @@ export default function CardProducto({ producto }: { producto: Producto }) {
         )}
 
         {/* Precio */}
-        <div className="flex items-baseline gap-2 mt-auto">
+        <div className="flex items-baseline gap-2 mt-auto flex-wrap">
           <span className="text-base font-black text-dark">
             {formatPriceCOP(variante?.precio ?? 0)}
           </span>

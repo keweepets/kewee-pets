@@ -224,7 +224,7 @@ export default async function CatalogoPage({
       {/* Resultados */}
       {resultado.productos.length > 0 ? (
         <>
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
             {resultado.productos.map((producto) => (
               <CardProducto key={producto.id} producto={producto} />
             ))}
