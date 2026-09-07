@@ -76,7 +76,7 @@ function FilasCategoria({
                 <span className="text-xs text-muted">/{nodo.slug}</span>
               </div>
             </td>
-            <td className="px-4 py-3 text-muted">
+            <td className="px-4 py-3 text-muted whitespace-nowrap">
               {nivel === 0 ? (
                 <span>Raíz</span>
               ) : (
@@ -85,12 +85,12 @@ function FilasCategoria({
                 </span>
               )}
             </td>
-            <td className="px-4 py-3 text-center">
+            <td className="px-4 py-3 text-center whitespace-nowrap">
               <Badge tono={nodo.activo ? "verdeSuave" : "gris"}>
                 {nodo.activo ? "Activa" : "Inactiva"}
               </Badge>
             </td>
-            <td className="px-4 py-3 text-center">
+            <td className="px-4 py-3 text-center whitespace-nowrap">
               <div className="flex items-center justify-center gap-1">
                 <BotonReordenarCategoria
                   categoriaId={nodo.id}
@@ -106,7 +106,7 @@ function FilasCategoria({
                 />
               </div>
             </td>
-            <td className="px-4 py-3 text-center">
+            <td className="px-4 py-3 text-center whitespace-nowrap">
               <div className="flex flex-col items-center gap-1">
                 <Link
                   href={`/admin/categorias/${nodo.id}`}
@@ -180,14 +180,14 @@ export default async function PaginaCategoriasAdmin() {
       ) : (
         <article className="overflow-hidden rounded-2xl border border-gray-100 bg-white">
           <div className="overflow-x-auto">
-            <table className="w-full text-left text-sm">
+            <table className="w-full min-w-[760px] text-left text-sm">
               <thead>
                 <tr className="border-b border-gray-100 bg-gray-50 text-xs font-bold uppercase tracking-wider text-muted">
                   <th className="px-4 py-3">Categoría</th>
-                  <th className="px-4 py-3">Jerarquía</th>
-                  <th className="px-4 py-3 text-center">Estado</th>
-                  <th className="px-4 py-3 text-center">Orden</th>
-                  <th className="px-4 py-3 text-center">Acciones</th>
+                  <th className="px-4 py-3 whitespace-nowrap">Jerarquía</th>
+                  <th className="px-4 py-3 text-center whitespace-nowrap">Estado</th>
+                  <th className="px-4 py-3 text-center whitespace-nowrap">Orden</th>
+                  <th className="px-4 py-3 text-center whitespace-nowrap">Acciones</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-50">

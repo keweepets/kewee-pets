@@ -175,33 +175,33 @@ export default async function PaginaPedidosAdmin({
                     key={pedido.id}
                     className="transition-colors hover:bg-gray-50/50"
                   >
-                    <td className="px-4 py-3 font-mono text-xs font-bold text-dark">
+                    <td className="px-4 py-3 font-mono text-xs font-bold text-dark whitespace-nowrap">
                       {pedido.numero_pedido}
                     </td>
-                    <td className="px-4 py-3 text-muted">
+                    <td className="px-4 py-3 text-muted whitespace-nowrap">
                       {formatearFecha(pedido.created_at)}
                     </td>
                     <td className="px-4 py-3 font-bold text-dark">
                       {cliente.nombre}
                     </td>
-                    <td className="px-4 py-3 text-muted">{cliente.telefono}</td>
-                    <td className="px-4 py-3 text-right font-bold text-dark">
+                    <td className="px-4 py-3 text-muted whitespace-nowrap">{cliente.telefono}</td>
+                    <td className="px-4 py-3 text-right font-bold text-dark whitespace-nowrap">
                       {formatPriceCOP(pedido.total)}
                     </td>
-                    <td className="px-4 py-3 text-muted">
+                    <td className="px-4 py-3 text-muted whitespace-nowrap">
                       {ETIQUETAS_METODO_PAGO[pedido.metodo_pago]}
                     </td>
-                    <td className="px-4 py-3 text-center">
+                    <td className="px-4 py-3 text-center whitespace-nowrap">
                       <Badge tono={TONOS_ESTADO_PAGO[pedido.estado_pago]}>
                         {ETIQUETAS_ESTADO_PAGO[pedido.estado_pago]}
                       </Badge>
                     </td>
-                    <td className="px-4 py-3 text-center">
+                    <td className="px-4 py-3 text-center whitespace-nowrap">
                       <Badge tono={TONOS_ESTADO[pedido.estado]}>
                         {ETIQUETAS_ESTADO[pedido.estado]}
                       </Badge>
                     </td>
-                    <td className="px-4 py-3 text-center">
+                    <td className="px-4 py-3 text-center whitespace-nowrap">
                       <Link
                         href={`/admin/pedidos/${pedido.id}`}
                         className="text-sm font-semibold text-green-600 transition-colors hover:text-green-800"

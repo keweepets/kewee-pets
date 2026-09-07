@@ -230,18 +230,18 @@ export default async function PaginaPromocionesAdmin() {
       ) : (
         <article className="overflow-hidden rounded-2xl border border-gray-100 bg-white">
           <div className="overflow-x-auto">
-            <table className="min-w-full text-left text-sm">
+            <table className="w-full min-w-[1140px] text-left text-sm">
               <thead>
                 <tr className="border-b border-gray-100 bg-gray-50 text-xs font-bold uppercase tracking-wider text-muted">
                   <th className="px-4 py-3">Promoción</th>
-                  <th className="px-4 py-3">Tipo</th>
+                  <th className="px-4 py-3 whitespace-nowrap">Tipo</th>
                   <th className="px-4 py-3">Alcance</th>
                   <th className="px-4 py-3">Objetivo</th>
-                  <th className="px-4 py-3 text-right">Valor</th>
-                  <th className="px-4 py-3 text-center">Impacto</th>
-                  <th className="px-4 py-3">Vigencia</th>
-                  <th className="px-4 py-3 text-center">Estado</th>
-                  <th className="px-4 py-3 text-center">Acciones</th>
+                  <th className="px-4 py-3 text-right whitespace-nowrap">Valor</th>
+                  <th className="px-4 py-3 text-center whitespace-nowrap">Impacto</th>
+                  <th className="px-4 py-3 whitespace-nowrap">Vigencia</th>
+                  <th className="px-4 py-3 text-center whitespace-nowrap">Estado</th>
+                  <th className="px-4 py-3 text-center whitespace-nowrap">Acciones</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-50">
@@ -270,7 +270,7 @@ export default async function PaginaPromocionesAdmin() {
                       <td className="px-4 py-3 font-bold text-dark">
                         {prom.nombre}
                       </td>
-                      <td className="px-4 py-3 text-muted">
+                      <td className="px-4 py-3 text-muted whitespace-nowrap">
                         {ETIQUETAS_TIPO[prom.tipo]}
                       </td>
                       <td className="px-4 py-3 text-muted">
@@ -279,15 +279,15 @@ export default async function PaginaPromocionesAdmin() {
                       <td className="px-4 py-3 text-dark">
                         {nombreObjetivo(prom, nombres)}
                       </td>
-                      <td className="px-4 py-3 text-right font-bold text-dark">
+                      <td className="px-4 py-3 text-right font-bold text-dark whitespace-nowrap">
                         {formatearValor(prom)}
                       </td>
-                      <td className="px-4 py-3 text-center">
+                      <td className="px-4 py-3 text-center whitespace-nowrap">
                         <Impacto
                           impacto={impactoPorPromo.get(prom.id) ?? { productos: 0, variantes: 0 }}
                         />
                       </td>
-                      <td className="px-4 py-3">
+                      <td className="px-4 py-3 whitespace-nowrap">
                         <div className="flex flex-col">
                           <span className="text-muted">
                             {formatearFecha(prom.fecha_inicio)}
@@ -297,10 +297,10 @@ export default async function PaginaPromocionesAdmin() {
                           </span>
                         </div>
                       </td>
-                      <td className="px-4 py-3 text-center">
+                      <td className="px-4 py-3 text-center whitespace-nowrap">
                         <Badge tono={tonoEstado}>{etiquetaEstado}</Badge>
                       </td>
-                      <td className="px-4 py-3 text-center">
+                      <td className="px-4 py-3 text-center whitespace-nowrap">
                         <div className="flex flex-col items-center gap-1">
                           <Link
                             href={`/admin/promociones/${prom.id}`}

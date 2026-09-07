@@ -164,16 +164,16 @@ export default async function PaginaProductosAdmin({
       ) : (
         <article className="rounded-2xl border border-gray-100 bg-white">
           <div className="overflow-x-auto">
-            <table className="min-w-full text-left text-sm">
+            <table className="w-full min-w-[1080px] text-left text-sm">
               <thead>
                 <tr className="border-b border-gray-100 bg-gray-50 text-xs font-bold uppercase tracking-wider text-muted">
                   <th className="px-4 py-3"></th>
                   <th className="px-4 py-3">Producto</th>
-                  <th className="px-4 py-3">Marca</th>
-                  <th className="px-4 py-3">Categoría</th>
+                  <th className="px-4 py-3 whitespace-nowrap">Marca</th>
+                  <th className="px-4 py-3 whitespace-nowrap">Categoría</th>
                   <th className="px-4 py-3">Variantes</th>
-                  <th className="px-4 py-3 text-center">Estado</th>
-                  <th className="px-4 py-3 text-center">Acciones</th>
+                  <th className="px-4 py-3 text-center whitespace-nowrap">Estado</th>
+                  <th className="px-4 py-3 text-center whitespace-nowrap">Acciones</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-50">
@@ -218,12 +218,12 @@ export default async function PaginaProductosAdmin({
                           </span>
                         </div>
                       </td>
-                      <td className="px-4 py-3 text-dark">
+                      <td className="px-4 py-3 text-dark whitespace-nowrap">
                         {Array.isArray(producto.marcas)
                           ? producto.marcas[0]?.nombre ?? "—"
                           : producto.marcas?.nombre ?? "—"}
                       </td>
-                      <td className="px-4 py-3 text-dark">
+                      <td className="px-4 py-3 text-dark whitespace-nowrap">
                         {Array.isArray(producto.categorias)
                           ? producto.categorias[0]?.nombre ?? "—"
                           : producto.categorias?.nombre ?? "—"}
@@ -236,7 +236,7 @@ export default async function PaginaProductosAdmin({
                             {variantesActivas.map((v) => (
                               <div
                                 key={v.id}
-                                className="flex items-center gap-2 text-xs"
+                                className="flex items-center gap-2 text-xs whitespace-nowrap"
                               >
                                 <span className="font-semibold text-dark">
                                   {v.nombre}
@@ -265,12 +265,12 @@ export default async function PaginaProductosAdmin({
                           </div>
                         )}
                       </td>
-                      <td className="px-4 py-3 text-center">
+                      <td className="px-4 py-3 text-center whitespace-nowrap">
                         <Badge tono={producto.activo ? "verdeSuave" : "gris"}>
                           {producto.activo ? "Activo" : "Inactivo"}
                         </Badge>
                       </td>
-                      <td className="px-4 py-3 text-center">
+                      <td className="px-4 py-3 text-center whitespace-nowrap">
                         <div className="flex flex-col items-center gap-1">
                           <Link
                             href={`/admin/productos/${producto.id}`}

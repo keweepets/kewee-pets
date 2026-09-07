@@ -48,13 +48,13 @@ export default async function PaginaMarcasAdmin() {
       ) : (
         <article className="overflow-hidden rounded-2xl border border-gray-100 bg-white">
           <div className="overflow-x-auto">
-            <table className="w-full text-left text-sm">
+            <table className="w-full min-w-[520px] text-left text-sm">
               <thead>
                 <tr className="border-b border-gray-100 bg-gray-50 text-xs font-bold uppercase tracking-wider text-muted">
                   <th className="px-4 py-3">Nombre</th>
-                  <th className="px-4 py-3">Slug</th>
-                  <th className="px-4 py-3 text-center">Estado</th>
-                  <th className="px-4 py-3 text-center">Acciones</th>
+                  <th className="px-4 py-3 whitespace-nowrap">Slug</th>
+                  <th className="px-4 py-3 text-center whitespace-nowrap">Estado</th>
+                  <th className="px-4 py-3 text-center whitespace-nowrap">Acciones</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-50">
@@ -66,13 +66,13 @@ export default async function PaginaMarcasAdmin() {
                     <td className="px-4 py-3 font-bold text-dark">
                       {marca.nombre}
                     </td>
-                    <td className="px-4 py-3 text-muted">/{marca.slug}</td>
-                    <td className="px-4 py-3 text-center">
+                    <td className="px-4 py-3 text-muted whitespace-nowrap">/{marca.slug}</td>
+                    <td className="px-4 py-3 text-center whitespace-nowrap">
                       <Badge tono={marca.activo ? "verdeSuave" : "gris"}>
                         {marca.activo ? "Activa" : "Inactiva"}
                       </Badge>
                     </td>
-                    <td className="px-4 py-3 text-center">
+                    <td className="px-4 py-3 text-center whitespace-nowrap">
                       <div className="flex flex-col items-center gap-1">
                         <Link
                           href={`/admin/marcas/${marca.id}`}
