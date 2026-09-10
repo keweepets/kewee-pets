@@ -6,7 +6,7 @@ export default function NotFound() {
   return (
     <div className="flex flex-1 flex-col items-center justify-center gap-4 px-6 py-24 text-center bg-green-50">
       <Image
-        src="/images/mascota-kewee.png"
+        src="/images/mascota-kewee.webp"
         alt="KEWEE MASCOTAS"
         width={120}
         height={120}

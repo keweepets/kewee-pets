@@ -34,7 +34,7 @@ function ImagenPlaceholder() {
   return (
     <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 bg-green-50">
       <Image
-        src="/images/mascota-kewee.png"
+        src="/images/mascota-kewee.webp"
         alt="KEWEE MASCOTAS"
         width={48}
         height={48}

@@ -15,7 +15,7 @@ export default async function Home() {
   // Productos reales de Supabase (UUID) para que las variantes agregadas al
   // carrito sean compatibles con crearPedido(). Se conservan los flags de
   // mapeo para replicar las secciones favoritos/destacados del diseño.
-  const { productos } = await listarProductos({ limite: 100 });
+  const { productos } = await listarProductos({ limite: 20 });
   const masVendidos = productos.filter(p => p.masVendido);
   const destacados = productos.filter(p => p.destacado);
 

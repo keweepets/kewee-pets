@@ -17,7 +17,7 @@ export default function SeccionNosotros() {
           {/* Mascota */}
           <div className="flex-1 flex justify-center">
             <Image
-              src="/images/mascota-kewee.png"
+              src="/images/mascota-kewee.webp"
               alt="Mascota de Kewee Mascotas"
               width={288}
               height={288}

@@ -4,6 +4,7 @@ const nextConfig: NextConfig = {
   poweredByHeader: false,
 
   images: {
+    formats: ["image/avif", "image/webp"],
     // Imágenes de productos servidas desde Supabase Storage.
     remotePatterns: [
       {
