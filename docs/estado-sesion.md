@@ -1,80 +1,112 @@
 # Kewee Mascotas — Estado de sesión
 
 > Documento de cierre de sesión para retomar el trabajo exactamente donde quedó.
-> Última actualización: 2026-09-05.
+> Última actualización: 2026-09-09.
 
 ## Punto de retorno
 
-**FASE 9 — BLOQUE D: RESPONSIVE**
+**FASE 9 — BLOQUE E: OPTIMIZACIÓN**
 
-Estado: **Diagnóstico completado** → pendiente: revisión/prioritización por el usuario → autorización → implementación.
-**NO iniciar la implementación todavía.**
+Estado: **Ciclo 1, 2.1 y 2.2 completados, aplicados y pusheados** → pendiente: continuar con el Ciclo 2.3 del Bloque E (instrucciones del usuario).
+**FASE 10 NO ha comenzado.** No iniciar bloques/ciclos nuevos sin autorización.
+
+---
+
+## Stack actual
+
+- **Next.js 16.3.1** (App Router, Turbopack) + **React**.
+- **TypeScript**, **Tailwind v4** (sin `tailwind.config`; tokens en `app/globals.css` `@theme`).
+- **Supabase** (PostgreSQL + PostgREST + Auth) con **pnpm v11.22.0**.
+- Package manager: pnpm. Scripts: `dev`, `build`, `start`, `lint`, `prueba:resend`.
+- Despliegue: Vercel (`kewee-pets` → `https://kewee-pets.vercel.app`). Repo: `keweepets/kewee-pets` (`origin/master`).
 
 ---
 
 ## Historial resumido
 
-- **Fase 9 — Bloque A (Email confirmación):** committeado (`ee39250`). NO tocar.
-- **Fase 9 — Bloque B (correo/electrónico):** committeado (`eb8ade9`).
-- **Fase 9 — Bloque C (SEO):** committeado (`8882306`, `seo: implement production SEO foundation`). Verificado en producción: robots.txt 200, sitemap.xml 200 (8 URLs), og-default.png 200 (1200×630). Sin canonical, sin JSON-LD, dominio definitivo diferido.
-- **Fase 9 — Bloque D (Responsive):** DIAGNÓSTICO completado (abajo). Implementación pendiente de aprobación.
+- **Fase 9 — Bloque A (Email confirmación):** commit `ee39250`. NO tocar.
+- **Fase 9 — Bloque B (correo/electrónico):** commit `eb8ade9`.
+- **Fase 9 — Bloque C (SEO):** commit `8882306` (`seo: implement production SEO foundation`). Verificado en producción.
+- **Fase 9 — Bloque D (Responsive):** implementado y commiteado: `5154a6d` (`fix: improve mobile responsive layout`), `7b3e812` (`fix: improve admin tables responsive layout`), `c639081` (`fix: refine mobile product grid responsive`), `dad7100` (`fix: improve mobile touch experience`).
+- **Fase 9 — Bloque E (Optimización):** Ciclo 1, 2.1 y 2.2 completados (detalle abajo). Ciclo 2.3 pendiente.
 
 ---
 
-## FASE 9 — BLOQUE D: RESPONSIVE (diagnóstico completo)
+## FASE 9 — BLOQUE E: OPTIMIZACIÓN (estado por ciclo)
 
-**Estado general: requiere correcciones.**
+### Ciclo 1 — Imágenes y carga de Home (COMPLETADO)
+- Commit `9cee38c` (`perf: optimize images and home product loading`). Pusheado.
+- Eliminados del disco 3 PNG sin usar que NUNCA estuvieron trackeados en git (`IMG_1434 - copia.PNG`, `IMG_1435.PNG`, `IMG_1436.PNG`).
+- `mascota-kewee.png` (921 KB) → `mascota-kewee.webp` (80 992 B, ~79 KB; 2480×2361 RGBA, calidad 80). 5 referencias actualizadas al `.webp` (carrito, checkout, not-found, seccion-nosotros, detalle-producto).
+- `next.config.ts`: `images.formats: ["image/avif", "image/webp"]` (Next 16 exige tipos MIME). Home `limite: 100 → 20`.
 
-Proyecto: Next.js + **Tailwind v4** (tokens en `app/globals.css` `@theme`; breakpoints por defecto sm=640, md=768, lg=1024, xl=1280, 2xl=1536). Sin `tailwind.config`; `postcss.config.mjs` para v4.
+### Ciclo 2.1 — Agregación top productos en SQL (COMPLETADO)
+- Commit `e60c43d` (`perf: move best-selling products aggregation to SQL`). Pusheado.
+- Migración **`0012_top_productos_rpc.sql`** → RPC **`public.top_productos_mas_vendidos(p_limite int default 5)`** (SUM cántidad, ORDER DESC, LIMIT). Aplicada en Supabase.
+- Fix previo del error `42804` (`COALESCE uuid/text`): clave = `COALESCE(producto_id::text, nombre_producto)` en el GROUP BY.
+- `lib/catalogo/consultas.ts`: `obtenerKpisCatalogo` usa `supabase.rpc("top_productos_mas_vendidos", { p_limite: 5 })` en lugar de la agregación en JS.
 
-### CRÍTICOS
+### Ciclo 2.2 — Paginación server-side productos admin (COMPLETADO)
+- Commit `a464070` (`perf: paginate admin products server-side`). Pusheado.
+- Migración **`0013_productos_admin_paginados.sql`** → RPC **`public.productos_admin_paginados(p_busqueda text default null, p_pagina int default 1, p_por_pagina int default 15)`**. Creada y **aplicada** en Supabase.
+- `app/admin/(panel)/productos/page.tsx`: reemplazada la carga completa por la RPC; `page` desde `searchParams`, `porPagina = 15`, `total`, `totalPaginas`, nav Anterior/Siguiente "Página X de Y", conserva `q`; redirección desde Server Component cuando la página solicitada queda fuera de rango (URL siempre normalizada a la página efectiva).
+- **Fix error `42P10`**: el `OFFSET (…)*v_por_pagina` con variable de PL/pgSQL es rechazado por PostgreSQL → se eliminó LIMIT/OFFSET y se pagina con `ROW_NUMBER() OVER (ORDER BY segmento, created_at DESC, id DESC)` filtrado por rango en el WHERE.
+- Búsqueda por **nombre/slug + SKU**: CTE que clasifica segmento 0 (nombre/slug) y segmento 1 (solo SKU) sobre el conjunto COMPLETO antes de paginar; total = `COUNT(*)` del conjunto completo; clamp a última página válida.
+- Migración **`0014_rpc_permisos.sql`** (permisos EXECUTE). **Aplicada** en Supabase.
 
-- **Header: búsqueda desborda < 380px.** `<form flex-1 max-w-xl mx-auto>` sin `min-w-0` (header.tsx:38,64); el input (min-content ~150–200px) no encoge y empuja logo/iconos/sangra. Alto. `components/layout/header.tsx`.
-- **Detalle producto: fila de precios sangra < 360px con ofertas.** `mt-6 flex items-baseline gap-3` sin `flex-wrap` (detalle-producto.tsx:147); precio `text-4xl font-black` + tachado + badge superan `px-4`. Alto. `components/productos/detalle-producto.tsx`.
-- **Checkout pago: `numero_pedido` en `inline-block` no envuelve** (pago/page.tsx:88). Medio-alto (hoy IDs cortos, frágil). `app/(tienda)/checkout/pago/page.tsx`.
+### RPC y permisos finales (verificados en Supabase)
+- `public.top_productos_mas_vendidos(p_limite int)` — `SECURITY INVOKER`; **EXECUTE solo `service_role`** (REVOKE de PUBLIC aplicado; `anon`/`authenticated` sin EXECUTE).
+- `public.productos_admin_paginados(p_busqueda text, p_pagina int, p_por_pagina int)` — `SECURITY INVOKER`; **EXECUTE solo `service_role`**.
+- Llamador real: el servidor Next.js vía `obtenerClienteServicioSupabase()` (`lib/supabase/servidor.ts`, `SUPABASE_SERVICE_ROLE_KEY`). Todo el panel admin ejecuta sus datos con `service_role`; la clave anon solo se usa para identidad (`auth.getUser()`).
 
-### IMPORTANTES
+---
 
-- **Admin nav pestañas desborda < 540px.** `nav flex w-full max-w-7xl gap-2 px-6` sin `flex-wrap`/`overflow-x-auto` (nav-admin.tsx:24); ~130px de exceso a 375px. `app/admin/(panel)/nav-admin.tsx`.
-- **Admin tablas sin ocultar columnas:** patrón `overflow-x-auto`+`min-w-full` sin `hidden` en breakpoint: Pedidos 9 col (pedidos/page.tsx:156), Promociones 9 col (promociones/page.tsx:232), Productos 7 col (productos/page.tsx:166). Acciones/"Ver" última columna solo por scroll. Celda Variantes (productos/page.tsx:235, `flex ... text-xs` sin wrap) ensancha más.
-- **Admin formularios de una fila sin `flex-wrap` (inconsistente):** `marcas/formulario.tsx:28` y `pedidos/[id]/cambiar-estado.tsx:39` desbordan; `categorias/formulario.tsx:41` y `pedidos/filtros.tsx:125` sí wrap. `productos/buscador.tsx:29` input+2 botones sin wrap.
-- **Admin acciones de imagen solo hover → inaccesibles en táctil:** `opacity-0 group-hover:opacity-100` (productos/nuevo/formulario.tsx:800; [id]:869,934). No se puede marcar principal/eliminar en móvil.
-- **Card producto: variantes y precios recortados en 2 col.** Chips `px-2 py-0.5 text-xs` ~22px, `line-through` recortado por `overflow-hidden` (card-producto.tsx:58,103). `components/productos/card-producto.tsx`.
-- **Header input impracticable + breakpoint Home vs Catálogo inconsistente:** Home `sm:grid-cols-3` (grid-destacados.tsx:17) vs Catálogo `md:grid-cols-3` (catalogo/page.tsx:227); input h-9 36px. `components/layout/header.tsx`, `components/home/grid-destacados.tsx`, `app/(tienda)/catalogo/page.tsx`.
-- **Carrito: subtotal COP se sale ≤ 345px con montos altos.** `flex items-center justify-between gap-3` sin wrap (carrito/page.tsx:132). `app/(tienda)/carrito/page.tsx`.
+## Pruebas realizadas (validación del usuario)
 
-### MENORES
+- RPC 0013: aplicada y probada en Supabase (consulta directa sin error `42P10`).
+- Paginación de `/admin/productos` probada (página 1 y posteriores, sin duplicados ni pérdidas).
+- Búsqueda por **nombre/slug** probada.
+- Búsqueda por **SKU** probada (incluye productos que matchean solo por SKU en páginas posteriores).
+- `total` del conjunto completo correcto; `q` preservado al cambiar de página.
+- Página fuera de rango: no rompe (clamp interno + redirect a página efectiva).
+- Migración 0014 verificada: `anon` y `authenticated` ya no tienen EXECUTE; `service_role` mantiene EXECUTE.
+- `pnpm lint`, `pnpm exec tsc --noEmit`, `pnpm build` en verde en cada ciclo (22 páginas).
 
-- **Zoom iOS:** todos los inputs usan `text-sm` (<16px) → zoom al enfocar (header.tsx:72, catalogo:190, checkout:321–420).
-- **Dots hero:** botones `h-2 w-2` ~8px sin área táctil (hero-slider.tsx:118).
-- **Chips filtro catálogo:** ~34px, bajo estándar 44px.
-- **"Ver todos"** carrusel: `hidden sm:flex` (carrusel-favoritos.tsx:20).
-- **Admin toggles/eliminar:** botones solo texto ~18–20px (boton-toggle/eliminar).
-- **Admin reordenar categorías:** botones 24×24 pegados (boton-reordenar.tsx:43).
-- **Admin acciones producto:** `flex gap-3` sin wrap < 375px (formulario.tsx:816/951).
-- **Nosotros (Home):** grid valores `grid-cols-2` apretado 320–400px (cosmético).
+---
 
-### PÁGINAS SIN PROBLEMAS
+## Último commit
 
-- **Home** (hero-slider ✓, categorias 2→4 ✓, seccion-perros-gatos 1→2 ✓, marcas wrap ✓, cta-final col→row ✓, seccion-nosotros ✓, carrusel overflow-x intencional ✓)
-- **Nosotros / Contacto** (`pagina-en-construccion` ✓)
-- **Checkout** (grid `sm:grid-cols-2`, resumen `lg:w-96 shrink-0` ✓)
-- **Footer** (banner flex-wrap, grid 1/2/4 ✓)
-- **Botón flotante WhatsApp** (`h-14 w-14 fixed` ✓)
-- **Admin:** Login, Update Password, Dashboard, Detalle pedido, Nota interna, Gestión stock, Selector periodo, Filtros ✓
+`a4640708ce355d1bedc33871be6074fa677cb63b` — `perf: paginate admin products server-side` (working tree limpio, `origin/master` al día).
 
-### Notas del diagnóstico
+---
 
-- Sin cambios de código; solo lectura. No se probó en viewports reales (determinado por análisis de código/Tailwind v4 breakpoints por defecto).
-- `proveedor-carrito.tsx` no renderiza drawer; el carrito es página `/carrito`.
-- `banner-promocion.tsx` comentado en Home, no se renderiza.
+## FASE 10 — NO ha comenzado
+
+Queda pendiente iniciar en una próxima sesión. No anticipar trabajo de Fase 10.
+
+---
+
+## Próximos puntos del diagnóstico de optimización / pendientes
+
+- **Ciclo 2.3 del Bloque E**: pendiente de instrucciones/detalle del usuario (no iniciado). Revisar con el usuario el plan restante de la Fase 9 · Bloque E.
+- Nota: el detalle oficial del diagnóstico de optimización de la Fase 9 · Bloque E quedó registrado en la conversación, no en un archivo del repo; recuperarlo de la consigna del usuario en la próxima sesión.
+- Pendientes globales no-optimización (fuera de Bloque E, NO tocar salvo autorización): verificar dominio en **Resend** para envíos a correos de clientes reales (hoy `onboarding@resend.dev` solo envía al correo propietario en modo testing) y el siguiente ítem del plan de producto (estado actual del dashboard/domicilios).
+
+---
+
+## Punto exacto para continuar
+
+1. Confirmar con el usuario las instrucciones del **Ciclo 2.3 de la Fase 9 · Bloque E (Optimización)**.
+2. Implementarlo por ciclo (diagnóstico → autorización → implementación → verificación) con el patrón ya establecido: solo archivos aprobados, migraciones vía SQL Editor manual en Supabase (no hay CLI/scripts; proyecto `rlutvhkyoqdmsvfxcyja`), `lint` + `tsc` + `build` en verde, commit/push solo cuando se solicite.
+3. No iniciar la Fase 10.
 
 ---
 
 ## Contexto técnico recurrente
 
-- Repo: `keweepets/kewee-pets`. Vercel: `kewee-pets` (`https://kewee-pets.vercel.app`).
-- Tailwind v4 (sin `tailwind.config`; tokens en `@theme`). `rg` no instalado → usar `Select-String`. Grep tool falla.
-- `NEXT_PUBLIC_SITE_URL` en prod = `https://kewee-pets.vercel.app`; en local = `http://localhost:3000`.
-- Excluir siempre: `public/images/IMG_1434 - copia.PNG`, `IMG_1435.PNG`, `IMG_1436.PNG`.
-- `lib/resend/plantilla-confirmacion.ts` (footer logo 300×111, background-image, textos 16px) — NO tocar.
+- `NOTA`: la herramienta `rg` NO está disponible → usar `Select-String` en lugar de grep/ripgrep.
+- Next.js **16.3.1** (docs en `node_modules/next/dist/docs/`): `images.formats` exige MIME types (`"image/avif" | "image/webp"`), no `"avif"|"webp"` (rompería `tsc` con TS2322).
+- Supabase: no hay CLI ni `config.toml`; las migraciones se aplican **manualmente** en el SQL Editor del Dashboard. No hay connection string directa. Las keys anon/service_role NO ejecutan DDL. Project ref: `rlutvhkyoqdmsvfxcyja`.
+- `.env.local`: `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, `ADMIN_EMAILS`, `NEXT_PUBLIC_SITE_URL` (prod `https://kewee-pets.vercel.app`). No exponer estos secretos.
+- RLS: lectura pública solo de registros ACTIVOS (0002); escrituras solo con `service_role`; datos sensibles de pedidos revocados a `anon/authenticated` (0011).
+- `lib/resend/plantilla-confirmacion.ts` (footer logo 300×111, textos 16px) — NO tocar.
