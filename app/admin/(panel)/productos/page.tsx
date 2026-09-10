@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
 
 import { obtenerClienteServicioSupabase } from "@/lib/supabase/servidor";
 import Badge from "@/components/ui/badge";
@@ -45,77 +46,42 @@ interface ProductoAdmin {
   imagenes_producto: ImagenResumen[];
 }
 
-function sanitizarBusqueda(q: string): string {
-  return q.replace(/[(),%]/g, " ").trim();
+interface ResultadoProductosAdmin {
+  productos: ProductoAdmin[];
+  total: number;
+  pagina: number;
+  porPagina: number;
+  totalPaginas: number;
 }
 
-async function obtenerProductosAdmin(busqueda?: string): Promise<ProductoAdmin[]> {
+async function obtenerProductosAdmin(
+  busqueda?: string,
+  pagina = 1,
+  porPagina = 15
+): Promise<ResultadoProductosAdmin> {
   const supabase = obtenerClienteServicioSupabase();
-  const termino = sanitizarBusqueda(busqueda ?? "");
 
-  let consulta = supabase
-    .from("productos")
-    .select(`
-      id, nombre, slug, activo, es_destacado, es_mas_vendido,
-      marcas(id, nombre),
-      categorias(id, nombre, slug),
-      variantes_producto(id, nombre, sku, precio, stock, activo),
-      imagenes_producto(url, orden, activo)
-    `);
-
-  if (termino) {
-    const patron = `%${termino}%`;
-
-    const { data: variantesMatch } = await supabase
-      .from("variantes_producto")
-      .select("producto_id")
-      .ilike("sku", patron);
-
-    const idsPorSku = new Set(
-      (variantesMatch ?? []).map((v) => v.producto_id)
-    );
-
-    consulta = consulta.or(
-      `nombre.ilike.${patron},slug.ilike.${patron}`
-    );
-
-    const { data, error } = await consulta.order("created_at", { ascending: false });
-
-    if (error) {
-      throw new Error(`[admin-productos] Error al consultar productos: ${error.message}`);
-    }
-
-    const productosDb = (data ?? []) as ProductoAdmin[];
-
-    if (idsPorSku.size === 0) return productosDb;
-
-    const idsNormales = new Set(productosDb.map((p) => p.id));
-    const idsFaltantes = [...idsPorSku].filter((id) => !idsNormales.has(id));
-
-    if (idsFaltantes.length === 0) return productosDb;
-
-    const { data: adicionales } = await supabase
-      .from("productos")
-      .select(`
-        id, nombre, slug, activo, es_destacado, es_mas_vendido,
-        marcas(id, nombre),
-        categorias(id, nombre, slug),
-        variantes_producto(id, nombre, sku, precio, stock, activo),
-        imagenes_producto(url, orden, activo)
-      `)
-      .in("id", idsFaltantes)
-      .order("created_at", { ascending: false });
-
-    return [...productosDb, ...((adicionales ?? []) as ProductoAdmin[])];
-  }
-
-  const { data, error } = await consulta.order("created_at", { ascending: false });
+  const { data, error } = await supabase.rpc("productos_admin_paginados", {
+    p_busqueda: busqueda?.trim() ? busqueda : null,
+    p_pagina: pagina,
+    p_por_pagina: porPagina,
+  });
 
   if (error) {
     throw new Error(`[admin-productos] Error al consultar productos: ${error.message}`);
   }
 
-  return (data ?? []) as ProductoAdmin[];
+  const filas = (data ?? []) as (ProductoAdmin & { total: number })[];
+  const total = filas[0]?.total ?? 0;
+  const totalPaginas = Math.ceil(total / porPagina);
+
+  return {
+    productos: filas,
+    total,
+    pagina: Math.max(pagina, 1),
+    porPagina,
+    totalPaginas,
+  };
 }
 
 function formatearPrecio(precio: number): string {
@@ -129,10 +95,29 @@ function formatearPrecio(precio: number): string {
 export default async function PaginaProductosAdmin({
   searchParams,
 }: {
-  searchParams: Promise<{ q?: string }>;
+  searchParams: Promise<{ q?: string; pagina?: string }>;
 }) {
-  const { q } = await searchParams;
-  const productos = await obtenerProductosAdmin(q);
+  const { q, pagina: paginaParam } = await searchParams;
+  const porPagina = 15;
+  const paginaSolicitada = Math.max(
+    parseInt(paginaParam ?? "1", 10) || 1,
+    1
+  );
+
+  const resultado = await obtenerProductosAdmin(q, paginaSolicitada, porPagina);
+  const { productos, total, totalPaginas } = resultado;
+  const pagina = Math.min(paginaSolicitada, Math.max(totalPaginas, 1));
+
+  function construirUrlPagina(nuevaPagina: number): string {
+    const url = new URLSearchParams();
+    if (q) url.set("q", q);
+    url.set("pagina", String(nuevaPagina));
+    return `/admin/productos?${url.toString()}`;
+  }
+
+  if (pagina !== paginaSolicitada) {
+    redirect(construirUrlPagina(pagina));
+  }
 
   return (
     <section className="flex flex-col gap-6">
@@ -291,13 +276,47 @@ export default async function PaginaProductosAdmin({
             </table>
           </div>
 
-          <footer className="border-t border-gray-100 bg-gray-50 px-4 py-3 text-xs text-muted">
-            {q && (
-              <span>
-                Resultados para &quot;{q}&quot; ·{" "}
-              </span>
+          <footer className="flex flex-wrap items-center justify-between gap-3 border-t border-gray-100 bg-gray-50 px-4 py-3 text-xs text-muted">
+            <p>
+              {q && (
+                <span>
+                  Resultados para &quot;{q}&quot; ·{" "}
+                </span>
+              )}
+              {total} producto{total !== 1 && "s"} en total
+            </p>
+
+            {totalPaginas > 1 && (
+              <nav className="flex items-center gap-2" aria-label="Paginación">
+                <Link
+                  href={construirUrlPagina(pagina - 1)}
+                  aria-disabled={pagina <= 1}
+                  className={
+                    "rounded-lg border px-3 py-1.5 text-sm font-semibold " +
+                    (pagina <= 1
+                      ? "pointer-events-none border-gray-200 text-muted/50 opacity-50"
+                      : "border-gray-200 bg-white text-dark hover:bg-gray-50")
+                  }
+                >
+                  ← Anterior
+                </Link>
+                <span className="text-sm font-semibold text-dark">
+                  Página {pagina} de {totalPaginas}
+                </span>
+                <Link
+                  href={construirUrlPagina(pagina + 1)}
+                  aria-disabled={pagina >= totalPaginas}
+                  className={
+                    "rounded-lg border px-3 py-1.5 text-sm font-semibold " +
+                    (pagina >= totalPaginas
+                      ? "pointer-events-none border-gray-200 text-muted/50 opacity-50"
+                      : "border-gray-200 bg-white text-dark hover:bg-gray-50")
+                  }
+                >
+                  Siguiente →
+                </Link>
+              </nav>
             )}
-            {productos.length} producto{productos.length !== 1 && "s"} en total
           </footer>
         </article>
       )}
