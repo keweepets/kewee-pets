@@ -298,33 +298,18 @@ export interface KpisCatalogo {
 export async function obtenerKpisCatalogo(): Promise<KpisCatalogo> {
   const supabase = obtenerClienteServicioSupabase();
 
-  // 1) Top productos por unidades vendidas (detalles_pedido).
-  const { data: detalle, error: errTop } = await supabase
-    .from("detalles_pedido")
-    .select("producto_id, nombre_producto, cantidad, productos(nombre)");
+  // 1) Top productos por unidades vendidas: agregación en PostgreSQL (RPC
+  //    top_productos_mas_vendidos). La BD hace GROUP BY + SUM + ORDER/LIMIT.
+  const { data: top, error: errTop } = await supabase.rpc(
+    "top_productos_mas_vendidos",
+    { p_limite: TOP_N_PRODUCTOS }
+  );
+  if (errTop) throw new Error(`[catalogo] topProductos: ${errTop.message}`);
 
-  let topProductos: TopProducto[] = [];
-  if (errTop) {
-    // Re-lanzar con contexto
-    throw new Error(`[catalogo] topProductos: ${errTop.message}`);
-  }
-
-  const ventas = new Map<
-    string,
-    { nombre: string; unidades: number }
-  >();
-  for (const fila of detalle ?? []) {
-    const f = fila as {
-      producto_id: string | null;
-      nombre_producto: string;
-      cantidad: number;
-      productos: unknown;
-    };
-    const clave = f.producto_id ?? f.nombre_producto;
-    const nombreProducto = primerProducto(f.productos)?.nombre ?? f.nombre_producto;
-    const previo = ventas.get(clave) ?? { nombre: nombreProducto, unidades: 0 };
-    ventas.set(clave, { nombre: nombreProducto, unidades: previo.unidades + f.cantidad });
-  }
+  const topProductos: TopProducto[] = (top ?? []).map((fila: { nombre: string; unidades_vendidas: number }) => ({
+    nombre: fila.nombre,
+    unidadesVendidas: fila.unidades_vendidas,
+  }));
 
   // Normaliza la relación embebida (la API devuelve un array en algunos casos).
   function primerProducto(valor: unknown): { nombre: string; activo?: boolean } | null {
@@ -332,11 +317,6 @@ export async function obtenerKpisCatalogo(): Promise<KpisCatalogo> {
     if (valor && typeof valor === "object") return valor as { nombre: string };
     return null;
   }
-
-  topProductos = Array.from(ventas.values())
-    .sort((a, b) => b.unidades - a.unidades)
-    .slice(0, TOP_N_PRODUCTOS)
-    .map(({ nombre, unidades }) => ({ nombre, unidadesVendidas: unidades }));
 
   // 2) Variantes activas con stock bajo, más su producto activo.
   const { data: variantes, error: errStock } = await supabase
