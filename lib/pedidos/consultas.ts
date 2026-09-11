@@ -201,26 +201,18 @@ export async function obtenerConteosPorEstado(
   rango: RangoFechas = {}
 ): Promise<ConteoPorEstado[]> {
   const supabase = obtenerClienteServicioSupabase();
-
   const limites = limitesRangoEnUtc(rango);
-  let query = supabase.from("pedidos").select("estado");
-  if (limites.desdeIso) query = query.gte("created_at", limites.desdeIso);
-  if (limites.hastaIso) query = query.lte("created_at", limites.hastaIso);
 
-  const { data, error } = await query;
+  const { data, error } = await supabase.rpc("conteos_por_estado", {
+    p_desde: limites.desdeIso ?? null,
+    p_hasta: limites.hastaIso ?? null,
+  });
 
   if (error) await lanzarSiError("obtenerConteosPorEstado", error);
 
-  const conteo: Record<string, number> = {};
-  for (const fila of data ?? []) {
-    const estado = fila.estado as string;
-    conteo[estado] = (conteo[estado] ?? 0) + 1;
-  }
-
-  return (Object.keys(conteo) as EstadoPedido[]).map((estado) => ({
-    estado,
-    cantidad: conteo[estado],
-  }));
+  return ((data ?? []) as { estado: EstadoPedido; cantidad: number }[]).map(
+    (fila) => ({ estado: fila.estado, cantidad: fila.cantidad })
+  );
 }
 
 export interface SerieDia {
@@ -318,61 +310,44 @@ export async function obtenerMetricasComerciales(
   rango: RangoFechas = {}
 ): Promise<MetricasComerciales> {
   const supabase = obtenerClienteServicioSupabase();
+  const limites = limitesRangoEnUtc(rango);
 
-  let queryPedidos = supabase.from("pedidos").select("estado, total");
-  let queryClientes = supabase.from("pedidos").select("cliente_id");
-  // Monetario oficial: solo pedidos con estado_pago = "pagado" cuentan como
-  // "cobrado". Se consulta aparte para no alterar las métricas operativas
-  // (totalPedidos, tasas) que siguen considerando todos los pedidos.
-  let queryPagado = supabase.from("pedidos").select("total");
-  if (rango.desde) {
-    queryPedidos = queryPedidos.gte("created_at", `${rango.desde}T00:00:00`);
-    queryClientes = queryClientes.gte("created_at", `${rango.desde}T00:00:00`);
-    queryPagado = queryPagado.gte("created_at", `${rango.desde}T00:00:00`);
-  }
-  if (rango.hasta) {
-    queryPedidos = queryPedidos.lte("created_at", `${rango.hasta}T23:59:59.999`);
-    queryClientes = queryClientes.lte("created_at", `${rango.hasta}T23:59:59.999`);
-    queryPagado = queryPagado.lte("created_at", `${rango.hasta}T23:59:59.999`);
-  }
-  queryPagado = queryPagado.eq("estado_pago", "pagado");
+  let query = supabase
+    .from("pedidos")
+    .select("estado, total, cliente_id, estado_pago");
+  if (limites.desdeIso) query = query.gte("created_at", limites.desdeIso);
+  if (limites.hastaIso) query = query.lte("created_at", limites.hastaIso);
 
-  const [resPedidos, resClientes, resPagado] = await Promise.all([
-    queryPedidos,
-    queryClientes,
-    queryPagado,
-  ]);
+  const { data, error } = await query;
+  if (error) await lanzarSiError("obtenerMetricasComerciales", error);
 
-  if (resPedidos.error)
-    await lanzarSiError("obtenerMetricasComerciales", resPedidos.error);
-  if (resClientes.error)
-    await lanzarSiError("obtenerMetricasComerciales", resClientes.error);
-  if (resPagado.error)
-    await lanzarSiError("obtenerMetricasComerciales", resPagado.error);
-
-  const pedidos = resPedidos.data ?? [];
-  const totalPedidos = pedidos.length;
+  const filas = (data ?? []) as {
+    estado: string;
+    total: number | bigint;
+    cliente_id: string;
+    estado_pago: string;
+  }[];
 
   let sumaCobrado = 0;
   let cobrado = 0;
   let entregados = 0;
   let canceladosRechazados = 0;
-  for (const fila of pedidos) {
-    const f = fila as { estado: string; total: number | bigint };
-    if (f.estado === "entregado") entregados += 1;
-    if (f.estado === "cancelado" || f.estado === "rechazado")
+  const conteoPorCliente = new Map<string, number>();
+  for (const fila of filas) {
+    if (fila.estado === "entregado") entregados += 1;
+    if (fila.estado === "cancelado" || fila.estado === "rechazado")
       canceladosRechazados += 1;
-  }
-  for (const fila of resPagado.data ?? []) {
-    sumaCobrado += Number((fila as { total: number | bigint }).total) || 0;
-    cobrado += 1;
+    if (fila.estado_pago === "pagado") {
+      sumaCobrado += Number(fila.total) || 0;
+      cobrado += 1;
+    }
+    conteoPorCliente.set(
+      fila.cliente_id,
+      (conteoPorCliente.get(fila.cliente_id) ?? 0) + 1
+    );
   }
 
-  const conteoPorCliente = new Map<string, number>();
-  for (const fila of resClientes.data ?? []) {
-    const clienteId = (fila as { cliente_id: string }).cliente_id;
-    conteoPorCliente.set(clienteId, (conteoPorCliente.get(clienteId) ?? 0) + 1);
-  }
+  const totalPedidos = filas.length;
   const clientesConPedidos = conteoPorCliente.size;
   let clientesRepetidos = 0;
   for (const cantidad of conteoPorCliente.values()) {
@@ -448,30 +423,29 @@ export async function obtenerResumenVentasYDomicilios(
   rango: RangoFechas = {}
 ): Promise<ResumenVentasYDomicilios> {
   const supabase = obtenerClienteServicioSupabase();
-
   const limites = limitesRangoEnUtc(rango);
-  let query = supabase
-    .from("pedidos")
-    .select("subtotal, costo_envio")
-    .eq("estado_pago", "pagado");
-  if (limites.desdeIso) query = query.gte("created_at", limites.desdeIso);
-  if (limites.hastaIso) query = query.lte("created_at", limites.hastaIso);
 
-  const { data, error } = await query;
+  const { data, error } = await supabase.rpc("resumen_ventas_y_domicilios", {
+    p_desde: limites.desdeIso ?? null,
+    p_hasta: limites.hastaIso ?? null,
+  });
   if (error) await lanzarSiError("obtenerResumenVentasYDomicilios", error);
 
-  let ventaProductos = 0;
-  let domicilios = 0;
-  for (const fila of data ?? []) {
-    const f = fila as { subtotal: number | bigint; costo_envio: number | bigint };
-    ventaProductos += Number(f.subtotal) || 0;
-    domicilios += Number(f.costo_envio) || 0;
-  }
+  const filas = (data ?? []) as {
+    venta_productos: number | bigint;
+    domicilios: number | bigint;
+    cantidad_pagados: number | bigint;
+  }[];
+  const fila = filas[0] ?? {
+    venta_productos: 0,
+    domicilios: 0,
+    cantidad_pagados: 0,
+  };
 
   return {
-    ventaProductos,
-    domicilios,
-    cantidadPagados: data?.length ?? 0,
+    ventaProductos: Number(fila.venta_productos) || 0,
+    domicilios: Number(fila.domicilios) || 0,
+    cantidadPagados: Number(fila.cantidad_pagados) || 0,
   };
 }
 
@@ -485,48 +459,33 @@ export async function obtenerResumenMetodoPago(
 ): Promise<ResumenMetodoPago[]> {
   const supabase = obtenerClienteServicioSupabase();
   const busqueda = await resolverBusqueda(supabase, filtros);
+  const limites = limitesRangoEnUtc(filtros);
 
-  // Grupos permitidos del método/canal actual en la BD.
-  const metodos: MetodoPago[] = ["contraentrega", "mercadopago"];
+  // Búsqueda sin coincidencias en ningún origen → sin pedidos (fuerza a cero,
+  // equivalente al `id.in([])` de aplicarBusqueda).
+  if (busqueda && busqueda.clientes.length === 0 && busqueda.pedidos.length === 0) {
+    return [];
+  }
 
-  const resultados = await Promise.all(
-    metodos.map(async (metodoPago) => {
-      const query = aplicarFiltros(
-        supabase
-          .from("pedidos")
-          .select("total", { count: "exact", head: true }),
-        { ...filtros, metodoPago },
-        busqueda
-      ).eq("estado_pago", "pagado");
-      const { count, error } = await query;
-      if (error)
-        await lanzarSiError("obtenerResumenMetodoPago", error);
+  const { data, error } = await supabase.rpc("resumen_metodo_pago", {
+    p_desde: limites.desdeIso ?? null,
+    p_hasta: limites.hastaIso ?? null,
+    p_estado: filtros.estado ?? null,
+    p_estado_pago: filtros.estadoPago ?? null,
+    p_cliente_ids: busqueda?.clientes.length ? busqueda.clientes.join(",") : null,
+    p_pedido_ids: busqueda?.pedidos.length ? busqueda.pedidos.join(",") : null,
+  });
+  if (error) await lanzarSiError("obtenerResumenMetodoPago", error);
 
-      const sumaQuery = aplicarFiltros(
-        supabase
-          .from("pedidos")
-          .select("total"),
-        { ...filtros, metodoPago },
-        busqueda
-      ).eq("estado_pago", "pagado");
-      const { data: totales, error: errorSuma } = await sumaQuery;
-      if (errorSuma)
-        await lanzarSiError("obtenerResumenMetodoPago", errorSuma);
-
-      const sumaTotal = (totales ?? []).reduce<number>(
-        (acc, fila) => acc + (Number((fila as { total: number | bigint }).total) || 0),
-        0
-      );
-
-      return {
-        metodoPago,
-        cantidad: count ?? 0,
-        sumaTotal,
-      };
-    })
-  );
-
-  return resultados;
+  return ((data ?? []) as {
+    metodo_pago: MetodoPago;
+    cantidad: number;
+    suma_total: number | bigint;
+  }[]).map((fila) => ({
+    metodoPago: fila.metodo_pago,
+    cantidad: fila.cantidad,
+    sumaTotal: Number(fila.suma_total) || 0,
+  }));
 }
 
 /**
