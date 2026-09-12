@@ -7,6 +7,7 @@ import Boton from "@/components/ui/boton";
 import CampoTexto from "@/components/ui/campo-texto";
 import { editarProducto } from "../acciones";
 import { subirImagenProducto, eliminarImagen, establecerPrincipal } from "../imagenes-acciones";
+import { optimizarImagenProducto } from "../optimizar-imagen";
 import type { EditarProductoEntrada } from "../acciones";
 import type { TipoVariante } from "@/lib/supabase/tipos-db";
 
@@ -255,10 +256,21 @@ export default function FormularioEditarProducto({
 
   const agregarImagenes = useCallback((nuevos: FileList | null) => {
     if (!nuevos) return;
-    const lista = Array.from(nuevos).filter((f) =>
+    const validos = Array.from(nuevos).filter((f) =>
       ["image/jpeg", "image/png", "image/webp"].includes(f.type) && f.size <= 5 * 1024 * 1024
     );
-    setArchivosNuevos((prev) => [...prev, ...lista]);
+
+    async function procesar() {
+      for (const archivo of validos) {
+        const resultado = await optimizarImagenProducto(archivo);
+        if (resultado.ok) {
+          setArchivosNuevos((prev) => [...prev, resultado.archivo]);
+        } else {
+          setError(resultado.error);
+        }
+      }
+    }
+    void procesar();
   }, []);
 
   const eliminarImagenPendiente = useCallback((indice: number) => {
