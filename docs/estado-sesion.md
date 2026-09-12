@@ -61,6 +61,23 @@ Estado: **Ciclo 1, 2.1 y 2.2 completados, aplicados y pusheados** → pendiente:
 
 ---
 
+## Fixes post-Ciclo 2.2 (sesión 2026-09-11) — APLICAR ANTES DE RETOMAR
+
+> **ACCIÓN PENDIENTE MANUAL:** la migración **`0016_productos_admin_perf.sql` NO ha sido aplicada** en Supabase.
+> Aplicarla en Dashboard → SQL Editor antes de probar `/admin/productos` (sin ella, los índices trgm y la RPC optimizada no existen en la BD).
+
+### 1. Fix Gateway Timeout (504) en `/admin/productos`
+- **Causa:** la RPC `productos_admin_paginados` (0013) hacía un `EXISTS` correlacionado por producto sobre `variantes_producto.sku` y comparaba `slug`/`sku` con `ILIKE` **sin índices trgm** → escaneos secuenciales; Supabase abortaba con `504 Gateway Timeout` y la página admin se caía con un throw sin controlar.
+- **Migración `0016_productos_admin_perf.sql`:** índices trgm en `productos.slug` y `variantes_producto.sku`; reescritura del CTE `coincidencias` a una sola pasada con `LEFT JOIN` (misma firma → permisos de 0014 siguen vigentes).
+- **`app/admin/(panel)/productos/page.tsx`:** la consulta ahora se envuelve en try/catch; ante error muestra tarjeta con mensaje y botón "Reintentar" en vez de romper.
+
+### 2. Optimización client-side de imágenes de productos (antes de subir)
+- **`app/admin/(panel)/productos/optimizar-imagen.ts`** (nuevo): redimensiona a máx. 1600 px en su lado mayor + re-codifica a **WebP calidad 0.82** (reintento a 0.70 si supera 500 KB; tope duro 1 MB → error amigable y no se envía). Devuelve un `File` nuevo `image/webp`.
+- **`app/admin/(panel)/productos/[id]/formulario.tsx`** y **`nuevo/formulario.tsx`**: `agregarImagenes` procesa cada archivo con `optimizarImagenProducto` (en orden, preserva la principal) y guarda el resultado; el preview y el loop de `subirImagenProducto()` quedan intactos.
+- **Sin cambios** en: Server Action (firma), Supabase Storage, `next.config.ts` ni `serverActions.bodySizeLimit`.
+
+---
+
 ## Pruebas realizadas (validación del usuario)
 
 - RPC 0013: aplicada y probada en Supabase (consulta directa sin error `42P10`).
@@ -76,7 +93,7 @@ Estado: **Ciclo 1, 2.1 y 2.2 completados, aplicados y pusheados** → pendiente:
 
 ## Último commit
 
-`a4640708ce355d1bedc33871be6074fa677cb63b` — `perf: paginate admin products server-side` (working tree limpio, `origin/master` al día).
+Ver `git log --oneline -6` tras el push de esta sesión (commits: perf fix Gateway Timeout 0016, optimización client-side de imágenes, assets de imágenes de producto y este docs). Working tree a pushear a `origin/master`.
 
 ---
 
