@@ -104,7 +104,51 @@ export default async function PaginaProductosAdmin({
     1
   );
 
-  const resultado = await obtenerProductosAdmin(q, paginaSolicitada, porPagina);
+  let resultado: ResultadoProductosAdmin | null = null;
+  let errorConsulta: string | null = null;
+  try {
+    resultado = await obtenerProductosAdmin(q, paginaSolicitada, porPagina);
+  } catch (e) {
+    errorConsulta =
+      e instanceof Error ? e.message : "Error desconocido al consultar.";
+  }
+
+  if (errorConsulta) {
+    return (
+      <section className="flex flex-col gap-6">
+        <header>
+          <h1 className="font-display text-2xl font-black text-dark">Productos</h1>
+          <p className="mt-1 text-muted">
+            Gestión del catálogo de productos, variantes e inventario.
+          </p>
+        </header>
+        <article className="rounded-2xl border border-red-200 bg-red-50 p-8 text-center">
+          <p className="font-display text-lg font-black text-red-700">
+            No se pudieron cargar los productos
+          </p>
+          <p className="mt-2 text-sm text-red-600">
+            {errorConsulta}
+          </p>
+          <p className="mt-4 text-sm text-muted">
+            Revisa que Supabase esté disponible y vuelve a intentar.
+          </p>
+          <Link
+            href="/admin/productos"
+            className="mt-4 inline-block rounded-xl bg-green-500 px-4 py-2 text-sm font-bold text-white transition-colors hover:bg-green-600"
+          >
+            Reintentar
+          </Link>
+        </article>
+      </section>
+    );
+  }
+
+  if (!resultado) {
+    throw new Error(
+      "[admin-productos] Se perdió el resultado de la consulta: " + errorConsulta
+    );
+  }
+
   const { productos, total, totalPaginas } = resultado;
   const pagina = Math.min(paginaSolicitada, Math.max(totalPaginas, 1));
 
